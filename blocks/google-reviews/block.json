@@ -1,0 +1,112 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "dh/google-reviews",
+	"version": "1.0.0",
+	"title": "Google Reviews",
+	"category": "widgets",
+	"icon": "star-filled",
+	"description": "Display Google Business Profile reviews with configurable layout and styling options.",
+	"keywords": [ "reviews", "google", "ratings", "testimonials" ],
+	"textdomain": "dh-google-reviews",
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ]
+	},
+	"attributes": {
+		"count": {
+			"type": "number",
+			"default": 5
+		},
+		"minRating": {
+			"type": "number",
+			"default": 1
+		},
+		"layout": {
+			"type": "string",
+			"default": "grid",
+			"enum": [ "grid", "slider", "list" ]
+		},
+		"columns": {
+			"type": "number",
+			"default": 3
+		},
+		"showReply": {
+			"type": "boolean",
+			"default": true
+		},
+		"showDate": {
+			"type": "boolean",
+			"default": true
+		},
+		"showPhoto": {
+			"type": "boolean",
+			"default": true
+		},
+		"showStars": {
+			"type": "boolean",
+			"default": true
+		},
+		"showAggregate": {
+			"type": "boolean",
+			"default": true
+		},
+		"schema": {
+			"type": "boolean",
+			"default": true
+		},
+		"location": {
+			"type": "string",
+			"default": ""
+		},
+		"orderby": {
+			"type": "string",
+			"default": "date",
+			"enum": [ "date", "rating", "random" ]
+		},
+		"order": {
+			"type": "string",
+			"default": "DESC",
+			"enum": [ "ASC", "DESC" ]
+		},
+		"excerptLength": {
+			"type": "number",
+			"default": 150
+		},
+		"showGoogleIcon": {
+			"type": "boolean",
+			"default": true
+		},
+		"showGoogleAttribution": {
+			"type": "boolean",
+			"default": true
+		},
+		"showCta": {
+			"type": "boolean",
+			"default": true
+		},
+		"ctaText": {
+			"type": "string",
+			"default": "Review Us On Google"
+		},
+		"showDots": {
+			"type": "boolean",
+			"default": true
+		},
+		"visibleCards": {
+			"type": "number",
+			"default": 3
+		},
+		"dateFormat": {
+			"type": "string",
+			"default": "relative",
+			"enum": [ "relative", "absolute" ]
+		},
+		"className": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"editorScript": "file:../../blocks/build/index.js",
+	"render": "file:../../includes/class-dh-reviews-block.php"
+}

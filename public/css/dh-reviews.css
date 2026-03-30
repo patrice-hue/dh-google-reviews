@@ -1,0 +1,12 @@
+/**
+ * DH Google Reviews - Frontend Styles
+ *
+ * Base styles for review card layouts (grid, slider, list),
+ * aggregate rating bar, star ratings, and CTA button.
+ * All visual properties exposed as CSS custom properties
+ * for easy theme integration.
+ *
+ * @package DH_Reviews
+ * @version 1.0.0
+ * @see     SPEC.md Section 6.5 for custom property definitions
+ */
