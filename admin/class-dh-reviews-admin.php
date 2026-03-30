@@ -40,11 +40,11 @@ class Admin {
 	 *
 	 * Menu structure:
 	 *   Reviews (top level)
-	 *   ├── All Reviews (CPT list)
-	 *   ├── Add Manual Review (CPT new)
-	 *   ├── Import / Export
-	 *   ├── Settings
-	 *   └── Sync Log
+	 *   +-- All Reviews (CPT list)
+	 *   +-- Add Manual Review (CPT new)
+	 *   +-- Import / Export
+	 *   +-- Settings
+	 *   +-- Sync Log
 	 *
 	 * @return void
 	 */
