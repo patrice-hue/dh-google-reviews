@@ -1,0 +1,104 @@
+<?php
+/**
+ * Plugin Name: DH Google Reviews
+ * Plugin URI:  https://digitalhitmen.com.au
+ * Description: Display Google Business Profile reviews on your WordPress site with shortcodes, Gutenberg blocks, and automatic schema markup output.
+ * Version:     1.0.0
+ * Author:      Digital Hitmen
+ * Author URI:  https://digitalhitmen.com.au
+ * License:     GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: dh-google-reviews
+ * Requires PHP: 8.1
+ * Requires at least: 6.4
+ *
+ * @package DH_Reviews
+ */
+
+namespace DH_Reviews;
+
+// Prevent direct access.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Plugin version.
+ *
+ * @var string
+ */
+define( 'DH_REVIEWS_VERSION', '1.0.0' );
+
+/**
+ * Plugin directory path (with trailing slash).
+ *
+ * @var string
+ */
+define( 'DH_REVIEWS_PATH', plugin_dir_path( __FILE__ ) );
+
+/**
+ * Plugin directory URL (with trailing slash).
+ *
+ * @var string
+ */
+define( 'DH_REVIEWS_URL', plugin_dir_url( __FILE__ ) );
+
+/*
+|--------------------------------------------------------------------------
+| Autoload class files
+|--------------------------------------------------------------------------
+*/
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-encryption.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-cpt.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-api.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-sync.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-schema.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-render.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-block.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-import.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-export.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-photo-proxy.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-activator.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-deactivator.php';
+require_once DH_REVIEWS_PATH . 'admin/class-dh-reviews-admin.php';
+
+/*
+|--------------------------------------------------------------------------
+| Activation and deactivation hooks
+|--------------------------------------------------------------------------
+*/
+register_activation_hook( __FILE__, array( new Activator(), 'activate' ) );
+register_deactivation_hook( __FILE__, array( new Deactivator(), 'deactivate' ) );
+
+/*
+|--------------------------------------------------------------------------
+| Initialise plugin components
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Boot classes that must run on every request (CPT, shortcode, schema, REST).
+ *
+ * @return void
+ */
+function dh_reviews_init(): void {
+	new CPT();
+	new Render();
+	new Schema();
+	new Block();
+	new Photo_Proxy();
+}
+add_action( 'init', __NAMESPACE__ . '\\dh_reviews_init' );
+
+/**
+ * Boot admin only classes.
+ *
+ * @return void
+ */
+function dh_reviews_admin_init(): void {
+	new Admin();
+	new Sync();
+	new Import();
+	new Export();
+}
+add_action( 'admin_init', __NAMESPACE__ . '\\dh_reviews_admin_init' );
