@@ -87,6 +87,7 @@ function dh_reviews_init(): void {
 	new Schema();
 	new Block();
 	new Photo_Proxy();
+	new API();
 	new Sync();
 }
 add_action( 'init', __NAMESPACE__ . '\\dh_reviews_init' );

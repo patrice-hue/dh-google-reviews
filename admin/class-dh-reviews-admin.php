@@ -989,9 +989,9 @@ class Admin {
 	 * @return void
 	 */
 	public function render_field_oauth_connect(): void {
-		$settings = get_option( self::OPTION_NAME, array() );
-		$email    = $settings['oauth_connected_email'] ?? '';
-		$token    = $settings['oauth_refresh_token'] ?? '';
+		$settings  = get_option( self::OPTION_NAME, array() );
+		$email     = $settings['oauth_connected_email'] ?? '';
+		$token     = $settings['oauth_refresh_token'] ?? '';
 		$connected = ! empty( $token );
 
 		if ( $connected ) {
@@ -1000,13 +1000,29 @@ class Admin {
 				echo ' <span class="description">' . esc_html( $email ) . '</span>';
 			}
 			echo '<br><br>';
-			echo '<a href="#" class="button dh-reviews-disconnect-btn" style="color:#b91c1c;">' . esc_html__( 'Disconnect', 'dh-google-reviews' ) . '</a>';
-			echo '<p class="description">' . esc_html__( 'OAuth disconnect will be wired in Session 7.', 'dh-google-reviews' ) . '</p>';
+			$disconnect_url = wp_nonce_url(
+				admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings&dh_oauth_disconnect=1' ),
+				'dh_oauth_disconnect'
+			);
+			printf(
+				'<a href="%s" class="button" style="color:#b91c1c;" onclick="return confirm(\'%s\');">%s</a>',
+				esc_url( $disconnect_url ),
+				esc_js( __( 'Disconnect Google account? This will stop automatic syncing.', 'dh-google-reviews' ) ),
+				esc_html__( 'Disconnect', 'dh-google-reviews' )
+			);
 		} else {
 			echo '<span class="dh-reviews-status dh-reviews-status--disconnected">' . esc_html__( 'Not connected', 'dh-google-reviews' ) . '</span>';
 			echo '<br><br>';
-			echo '<a href="#" class="button button-primary dh-reviews-connect-btn">' . esc_html__( 'Connect Google Account', 'dh-google-reviews' ) . '</a>';
-			echo '<p class="description">' . esc_html__( 'OAuth flow will be wired in Session 7. Save your Client ID and Secret first.', 'dh-google-reviews' ) . '</p>';
+			$connect_url = wp_nonce_url(
+				admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings&dh_oauth_initiate=1' ),
+				'dh_oauth_initiate'
+			);
+			printf(
+				'<a href="%s" class="button button-primary">%s</a>',
+				esc_url( $connect_url ),
+				esc_html__( 'Connect Google Account', 'dh-google-reviews' )
+			);
+			echo '<p class="description">' . esc_html__( 'Save your Client ID and Secret first, then click Connect.', 'dh-google-reviews' ) . '</p>';
 		}
 	}
 
@@ -1062,12 +1078,61 @@ class Admin {
 	}
 
 	/**
-	 * Render the Sync Now button (wired up in Session 7).
+	 * Render the Sync Now button with AJAX handler.
 	 *
 	 * @return void
 	 */
 	public function render_field_sync_now(): void {
-		echo '<button type="button" class="button dh-reviews-sync-now-btn" disabled>' . esc_html__( 'Sync Now', 'dh-google-reviews' ) . '</button>';
-		echo '<p class="description">' . esc_html__( 'Trigger an immediate sync. Will be enabled once an API location is connected.', 'dh-google-reviews' ) . '</p>';
+		$settings  = get_option( self::OPTION_NAME, array() );
+		$connected = ! empty( $settings['oauth_refresh_token'] ?? '' )
+			&& ! empty( $settings['google_location_id'] ?? '' );
+
+		$nonce = wp_create_nonce( 'dh_reviews_manual_sync' );
+
+		printf(
+			'<button type="button" id="dh-reviews-sync-now" class="button" data-nonce="%s"%s>%s</button>
+			<span id="dh-reviews-sync-spinner" class="spinner" style="float:none;visibility:hidden;"></span>
+			<span id="dh-reviews-sync-result" style="margin-left:8px;"></span>',
+			esc_attr( $nonce ),
+			$connected ? '' : ' disabled',
+			esc_html__( 'Sync Now', 'dh-google-reviews' )
+		);
+
+		if ( ! $connected ) {
+			echo '<p class="description">' . esc_html__( 'Connect a Google account and select a location to enable manual sync.', 'dh-google-reviews' ) . '</p>';
+		}
+
+		?>
+		<script>
+		( function () {
+			var btn = document.getElementById( 'dh-reviews-sync-now' );
+			if ( ! btn ) { return; }
+			btn.addEventListener( 'click', function () {
+				var spinner = document.getElementById( 'dh-reviews-sync-spinner' );
+				var result  = document.getElementById( 'dh-reviews-sync-result' );
+				btn.disabled = true;
+				spinner.style.visibility = 'visible';
+				result.textContent = '';
+				var data = new FormData();
+				data.append( 'action', 'dh_reviews_manual_sync' );
+				data.append( 'nonce', btn.dataset.nonce );
+				fetch( ajaxurl, { method: 'POST', body: data, credentials: 'same-origin' } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( json ) {
+						spinner.style.visibility = 'hidden';
+						btn.disabled = false;
+						result.style.color = json.success ? '#065f46' : '#b91c1c';
+						result.textContent = json.data && json.data.message ? json.data.message : ( json.success ? '<?php echo esc_js( __( 'Done.', 'dh-google-reviews' ) ); ?>' : '<?php echo esc_js( __( 'Sync failed.', 'dh-google-reviews' ) ); ?>' );
+					} )
+					.catch( function () {
+						spinner.style.visibility = 'hidden';
+						btn.disabled = false;
+						result.style.color = '#b91c1c';
+						result.textContent = '<?php echo esc_js( __( 'Request failed. Check your connection.', 'dh-google-reviews' ) ); ?>';
+					} );
+			} );
+		}() );
+		</script>
+		<?php
 	}
 }
