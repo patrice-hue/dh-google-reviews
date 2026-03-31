@@ -14,7 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="wrap">
+<div class="wrap dh-reviews-settings-wrap">
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-	<!-- Stub: settings form will be rendered here -->
+
+	<form method="post" action="options.php">
+		<?php
+		settings_fields( 'dh_reviews_settings_group' );
+		do_settings_sections( 'dh-reviews-settings' );
+		submit_button( __( 'Save Settings', 'dh-google-reviews' ) );
+		?>
+	</form>
 </div>
