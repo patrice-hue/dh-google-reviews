@@ -1,0 +1,13 @@
+{
+	"name": "dh-google-reviews",
+	"version": "1.0.0",
+	"description": "Build configuration for the DH Google Reviews Gutenberg block.",
+	"private": true,
+	"scripts": {
+		"build": "wp-scripts build blocks/google-reviews/index.js --output-path=blocks/build",
+		"start": "wp-scripts start blocks/google-reviews/index.js --output-path=blocks/build"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^30.0.0"
+	}
+}
