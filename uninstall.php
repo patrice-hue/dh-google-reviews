@@ -35,14 +35,33 @@ function dh_reviews_delete_options(): void {
  * Delete all dh_review CPT posts and associated meta.
  */
 function dh_reviews_delete_posts(): void {
-	// Stub: query and delete all dh_review posts.
+	$query = new WP_Query(
+		array(
+			'post_type'      => 'dh_review',
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'no_found_rows'  => true,
+			'fields'         => 'ids',
+		)
+	);
+
+	foreach ( $query->posts as $post_id ) {
+		wp_delete_post( (int) $post_id, true );
+	}
 }
 
 /**
  * Delete aggregate rating transients.
  */
 function dh_reviews_delete_transients(): void {
-	// Stub: delete transients matching dh_reviews_aggregate_*.
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options}
+		WHERE option_name LIKE '_transient_dh_reviews_aggregate_%'
+		OR option_name LIKE '_transient_timeout_dh_reviews_aggregate_%'"
+	);
 }
 
 /**

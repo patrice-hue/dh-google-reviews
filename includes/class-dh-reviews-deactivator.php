@@ -38,6 +38,6 @@ class Deactivator {
 	 * @return void
 	 */
 	private function clear_cron(): void {
-		// Stub: clear dh_reviews_sync scheduled event.
+		wp_clear_scheduled_hook( Sync::CRON_HOOK );
 	}
 }

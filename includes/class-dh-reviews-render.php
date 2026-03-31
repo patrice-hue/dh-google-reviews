@@ -258,10 +258,23 @@ class Render {
 			return '';
 		}
 
+		// Allow themes and plugins to inject CSS custom property overrides.
+		$css_vars = apply_filters( 'dh_reviews_css_vars', array() );
+		$css_block = '';
+		if ( ! empty( $css_vars ) && is_array( $css_vars ) ) {
+			$props = '';
+			foreach ( $css_vars as $prop => $value ) {
+				$props .= '--' . sanitize_key( $prop ) . ':' . esc_attr( (string) $value ) . ';';
+			}
+			if ( $props ) {
+				$css_block = '<style>.dh-reviews-wrap{' . $props . '}</style>';
+			}
+		}
+
 		$render = $this;
 		ob_start();
 		include $path;
-		return (string) ob_get_clean();
+		return $css_block . (string) ob_get_clean();
 	}
 
 	/**
@@ -375,8 +388,14 @@ class Render {
 
 		$aggregate = apply_filters( 'dh_reviews_aggregate_data', $aggregate );
 
-		$settings = get_option( 'dh_reviews_settings', array() );
-		$expiry   = isset( $settings['sync_frequency'] ) ? (int) $settings['sync_frequency'] : 43200;
+		$settings  = get_option( 'dh_reviews_settings', array() );
+		$freq_map  = array(
+			'6h'  => 6 * HOUR_IN_SECONDS,
+			'12h' => 12 * HOUR_IN_SECONDS,
+			'24h' => DAY_IN_SECONDS,
+		);
+		$freq   = $settings['sync_frequency'] ?? '24h';
+		$expiry = $freq_map[ $freq ] ?? 12 * HOUR_IN_SECONDS;
 
 		set_transient( $cache_key, $aggregate, $expiry );
 
@@ -496,6 +515,11 @@ class Render {
 		$photo = $show_photo ? (string) get_post_meta( $post_id, '_dh_reviewer_photo', true ) : '';
 
 		if ( $photo ) {
+			// Route through local photo proxy if enabled in settings.
+			$settings = get_option( 'dh_reviews_settings', array() );
+			if ( ! empty( $settings['photo_proxy'] ) ) {
+				$photo = add_query_arg( 'url', rawurlencode( $photo ), rest_url( 'dh-reviews/v1/photo/' ) );
+			}
 			return sprintf(
 				'<img class="dh-review-card__photo" src="%s" alt="%s" loading="lazy" width="48" height="48" />',
 				esc_url( $photo ),

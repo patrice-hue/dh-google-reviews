@@ -121,7 +121,31 @@ class Sync {
 			return;
 		}
 
-		wp_schedule_event( time(), self::SCHEDULE_MAP[ $freq ], self::CRON_HOOK );
+		// Map freq string to seconds so the filter can override numerically.
+		$seconds_map = array(
+			'6h'  => 6 * HOUR_IN_SECONDS,
+			'12h' => 12 * HOUR_IN_SECONDS,
+			'24h' => DAY_IN_SECONDS,
+		);
+		$default_seconds  = $seconds_map[ $freq ] ?? DAY_IN_SECONDS;
+		$filtered_seconds = (int) apply_filters( 'dh_reviews_sync_interval', $default_seconds );
+
+		if ( $filtered_seconds > 0 && $filtered_seconds !== $default_seconds ) {
+			// Register a one-off custom schedule for the overridden interval.
+			add_filter(
+				'cron_schedules',
+				function ( array $schedules ) use ( $filtered_seconds ): array {
+					$schedules['dh_reviews_custom'] = array(
+						'interval' => $filtered_seconds,
+						'display'  => __( 'DH Reviews Custom Interval', 'dh-google-reviews' ),
+					);
+					return $schedules;
+				}
+			);
+			wp_schedule_event( time(), 'dh_reviews_custom', self::CRON_HOOK );
+		} else {
+			wp_schedule_event( time(), self::SCHEDULE_MAP[ $freq ], self::CRON_HOOK );
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -162,7 +186,7 @@ class Sync {
 			return $result;
 		}
 
-		$min_rating        = (int) ( $settings['min_rating_publish'] ?? 1 );
+		$min_rating        = (int) apply_filters( 'dh_reviews_min_rating_publish', (int) ( $settings['min_rating_publish'] ?? 1 ) );
 		$below_threshold   = $settings['below_threshold_action'] ?? 'draft';
 
 		// --- Fetch all reviews from API ---
@@ -309,6 +333,8 @@ class Sync {
 	 * @return int|false New post ID on success, false on failure.
 	 */
 	public function create_review( array $review ): int|false {
+		$review = apply_filters( 'dh_reviews_sync_review', $review );
+
 		$date = ! empty( $review['create_time'] )
 			? gmdate( 'Y-m-d H:i:s', (int) strtotime( $review['create_time'] ) )
 			: current_time( 'mysql' );
@@ -328,6 +354,8 @@ class Sync {
 
 		$this->save_review_meta( $post_id, $review );
 
+		do_action( 'dh_reviews_review_created', $post_id, $review );
+
 		return $post_id;
 	}
 
@@ -341,6 +369,7 @@ class Sync {
 	 * @return bool True on success.
 	 */
 	public function update_review( int $post_id, array $review ): bool {
+		$review  = apply_filters( 'dh_reviews_sync_review', $review );
 		$updated = wp_update_post( array(
 			'ID'           => $post_id,
 			'post_content' => $review['review_text'],
