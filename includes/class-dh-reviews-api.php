@@ -304,7 +304,7 @@ class API {
 	 *
 	 * @return array|false Array of account objects or false on failure.
 	 */
-	public function list_accounts(): array|false {
+	public function list_accounts() {
 		$token = $this->get_access_token();
 		if ( '' === $token ) {
 			return false;
@@ -327,7 +327,7 @@ class API {
 	 * @param string $account_name Account resource name (e.g. accounts/123456789).
 	 * @return array|false Array of location objects or false on failure.
 	 */
-	public function list_locations( string $account_name ): array|false {
+	public function list_locations( string $account_name ) {
 		$token = $this->get_access_token();
 		if ( '' === $token ) {
 			return false;
@@ -356,7 +356,7 @@ class API {
 	 * @param string|null $page_token    Pagination token for the next page.
 	 * @return array|false Array with reviews and nextPageToken, or false on failure.
 	 */
-	public function list_reviews( string $location_name, ?string $page_token = null ): array|false {
+	public function list_reviews( string $location_name, $page_token = null ) {
 		$token = $this->get_access_token();
 		if ( '' === $token ) {
 			return false;
@@ -567,7 +567,7 @@ class API {
 	 * @param string $data_key      JSON key to extract (e.g. 'accounts', 'locations').
 	 * @return array|false Extracted array or false on any error.
 	 */
-	private function parse_response( mixed $response, string $data_key ): array|false {
+	private function parse_response( $response, string $data_key ) {
 		if ( is_wp_error( $response ) ) {
 			$this->set_error( $response->get_error_message() );
 			return false;

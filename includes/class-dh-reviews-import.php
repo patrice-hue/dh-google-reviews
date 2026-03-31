@@ -219,7 +219,7 @@ class Import {
 	 * @param int   $line 1-based line number for error context.
 	 * @return array|false Sanitized row data ready for create_review_from_row(), or false.
 	 */
-	public function validate_row( array $row, int $line ): array|false {
+	public function validate_row( array $row, int $line ) {
 		$this->last_validation_error = '';
 
 		$reviewer_name = sanitize_text_field( trim( $row['reviewer_name'] ?? '' ) );
@@ -279,7 +279,7 @@ class Import {
 	 * @param array $row Validated row data (output of validate_row() with post_status added).
 	 * @return int|false New post ID on success, false on failure.
 	 */
-	public function create_review_from_row( array $row ): int|false {
+	public function create_review_from_row( array $row ) {
 		$post_id = wp_insert_post(
 			array(
 				'post_type'     => CPT::POST_TYPE,
@@ -332,7 +332,7 @@ class Import {
 	 * @param array $file $_FILES element (name, tmp_name, size, type, error).
 	 * @return string|false Temporary file path on success, false on failure.
 	 */
-	public function validate_file( array $file ): string|false {
+	public function validate_file( array $file ) {
 		if ( empty( $file ) || ! isset( $file['tmp_name'] ) ) {
 			$this->last_validation_error = __( 'No file was uploaded.', 'dh-google-reviews' );
 			return false;

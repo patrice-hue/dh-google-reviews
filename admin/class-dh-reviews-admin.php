@@ -616,7 +616,7 @@ class Admin {
 	 * @param mixed $input Raw settings input (expected array).
 	 * @return array Sanitized settings.
 	 */
-	public function sanitize_settings( mixed $input ): array {
+	public function sanitize_settings( $input ): array {
 		if ( ! is_array( $input ) ) {
 			return array();
 		}

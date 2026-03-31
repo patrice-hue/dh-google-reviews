@@ -107,7 +107,7 @@ class Photo_Proxy {
 	 * @param string $url Candidate URL.
 	 * @return bool|string True if valid, error message string if not.
 	 */
-	public function validate_photo_url( string $url ): bool|string {
+	public function validate_photo_url( string $url ) {
 		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
 			return 'Invalid URL.';
 		}
@@ -134,7 +134,7 @@ class Photo_Proxy {
 	 * @param \WP_REST_Request $request REST request object.
 	 * @return \WP_Error Never returns normally — exits after output or returns error.
 	 */
-	public function serve_photo( \WP_REST_Request $request ): \WP_Error {
+	public function serve_photo( \WP_REST_Request $request ) {
 		$photo_url  = (string) $request->get_param( 'url' );
 		$photo_hash = md5( $photo_url );
 		$cached     = $this->get_cached_photo( $photo_hash );
@@ -170,7 +170,7 @@ class Photo_Proxy {
 	 * @param string $photo_hash MD5 hash of the original photo URL.
 	 * @return string|false Absolute file path if cache hit, false otherwise.
 	 */
-	public function get_cached_photo( string $photo_hash ): string|false {
+	public function get_cached_photo( string $photo_hash ) {
 		$cache_dir = $this->get_cache_dir();
 		if ( ! $cache_dir ) {
 			return false;
@@ -199,7 +199,7 @@ class Photo_Proxy {
 	 * @param string $photo_hash MD5 hash of the URL used as cache filename.
 	 * @return string|false Absolute cached file path on success, false on failure.
 	 */
-	public function cache_photo( string $photo_url, string $photo_hash ): string|false {
+	public function cache_photo( string $photo_url, string $photo_hash ) {
 		$cache_dir = $this->get_cache_dir();
 		if ( ! $cache_dir ) {
 			return false;
@@ -242,7 +242,7 @@ class Photo_Proxy {
 	 *
 	 * @return string|false Absolute directory path with trailing slash, or false on failure.
 	 */
-	private function get_cache_dir(): string|false {
+	private function get_cache_dir() {
 		$upload    = wp_upload_dir();
 		$cache_dir = trailingslashit( $upload['basedir'] ) . self::CACHE_DIR . '/';
 

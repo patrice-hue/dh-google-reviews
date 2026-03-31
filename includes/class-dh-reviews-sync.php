@@ -332,7 +332,7 @@ class Sync {
 	 * @param array $review Normalised review data (output of normalize_review() + post_status).
 	 * @return int|false New post ID on success, false on failure.
 	 */
-	public function create_review( array $review ): int|false {
+	public function create_review( array $review ) {
 		$review = apply_filters( 'dh_reviews_sync_review', $review );
 
 		$date = ! empty( $review['create_time'] )
@@ -390,7 +390,7 @@ class Sync {
 	 * @param string $gbp_review_id The Google review ID (reviewId field).
 	 * @return int|false Post ID if found, false otherwise.
 	 */
-	public function find_existing_review( string $gbp_review_id ): int|false {
+	public function find_existing_review( string $gbp_review_id ) {
 		$query = new \WP_Query( array(
 			'post_type'      => CPT::POST_TYPE,
 			'post_status'    => 'any',
