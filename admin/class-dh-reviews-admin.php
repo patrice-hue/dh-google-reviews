@@ -135,6 +135,42 @@ class Admin {
 			'dh-reviews-sync-log',
 			array( $this, 'render_sync_log_page' )
 		);
+
+		// OAuth callback — hidden page (null parent), never shown in the menu.
+		// Registering it here makes WordPress accept the URL as a valid admin page
+		// so the capability check passes when Google redirects back after consent.
+		// The actual token exchange is handled by API::handle_oauth_callback() on
+		// the admin_init hook; this render callback is only reached if that handler
+		// does not redirect first (e.g. if the code param is missing).
+		add_submenu_page(
+			null,
+			__( 'Google OAuth Callback', 'dh-google-reviews' ),
+			'',
+			'manage_options',
+			'dh-reviews-oauth-callback',
+			array( $this, 'render_oauth_callback_page' )
+		);
+	}
+
+	/**
+	 * Fallback render for the OAuth callback page.
+	 *
+	 * Under normal operation the admin_init handler in API::handle_oauth_callback()
+	 * processes the authorisation code and redirects before this method is called.
+	 * It is only reached when the code parameter is absent (e.g. user navigates
+	 * directly to the URL), in which case a safe redirect to settings is performed.
+	 *
+	 * @return void
+	 */
+	public function render_oauth_callback_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'dh-google-reviews' ) );
+		}
+
+		// API::handle_oauth_callback() should have already redirected. If we reach
+		// here the request has no code param — send the user back to settings.
+		wp_safe_redirect( admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings' ) );
+		exit;
 	}
 
 	// -------------------------------------------------------------------------
