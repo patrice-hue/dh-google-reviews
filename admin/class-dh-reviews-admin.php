@@ -1229,7 +1229,7 @@ class Admin {
 	}
 
 	/**
-	 * Render the Account selector dropdown (empty until OAuth is connected).
+	 * Render the Account selector dropdown, populated from the GBP API.
 	 *
 	 * @param array $args Field arguments.
 	 * @return void
@@ -1245,38 +1245,101 @@ class Admin {
 			return;
 		}
 
-		// Populated dynamically after OAuth (Session 7).
-		printf(
-			'<select id="%1$s" name="%2$s[%1$s]"><option value="">%3$s</option></select>',
-			esc_attr( $field ),
-			esc_attr( self::OPTION_NAME ),
-			esc_html__( 'Select account...', 'dh-google-reviews' )
-		);
+		$api      = new API();
+		$accounts = $api->list_accounts();
+
+		if ( false === $accounts ) {
+			$err_key = API::ERROR_TRANSIENT . '_' . get_current_user_id();
+			$error   = get_transient( $err_key );
+			delete_transient( $err_key );
+			echo '<div class="notice notice-error inline"><p>'
+				. '<strong>' . esc_html__( 'Could not load Google accounts:', 'dh-google-reviews' ) . '</strong> '
+				. ( $error ? esc_html( $error ) : esc_html__( 'Unknown error.', 'dh-google-reviews' ) )
+				. '</p></div>';
+			echo '<select disabled><option>' . esc_html__( 'Reload page to retry', 'dh-google-reviews' ) . '</option></select>';
+			return;
+		}
+
+		if ( empty( $accounts ) ) {
+			echo '<select disabled><option>' . esc_html__( 'No Google Business accounts found', 'dh-google-reviews' ) . '</option></select>';
+			return;
+		}
+
+		printf( '<select id="%1$s" name="%2$s[%1$s]">', esc_attr( $field ), esc_attr( self::OPTION_NAME ) );
+		echo '<option value="">' . esc_html__( 'Select account...', 'dh-google-reviews' ) . '</option>';
+
+		foreach ( $accounts as $account ) {
+			$name  = $account['name'] ?? '';
+			$label = $account['accountName'] ?? $name;
+			printf(
+				'<option value="%s"%s>%s</option>',
+				esc_attr( $name ),
+				selected( $current, $name, false ),
+				esc_html( $label )
+			);
+		}
+
+		echo '</select>';
 	}
 
 	/**
-	 * Render the Location selector dropdown (empty until account is selected).
+	 * Render the Location selector dropdown, populated from the GBP API.
 	 *
 	 * @param array $args Field arguments.
 	 * @return void
 	 */
 	public function render_field_location_selector( array $args ): void {
-		$settings  = get_option( self::OPTION_NAME, array() );
-		$field     = $args['field'];
-		$current   = $settings[ $field ] ?? '';
-		$connected = ! empty( $settings['oauth_refresh_token'] ?? '' );
+		$settings   = get_option( self::OPTION_NAME, array() );
+		$field      = $args['field'];
+		$current    = $settings[ $field ] ?? '';
+		$connected  = ! empty( $settings['oauth_refresh_token'] ?? '' );
+		$account_id = $settings['google_account_id'] ?? '';
 
 		if ( ! $connected ) {
 			echo '<select disabled><option>' . esc_html__( 'Connect Google Account first', 'dh-google-reviews' ) . '</option></select>';
 			return;
 		}
 
-		printf(
-			'<select id="%1$s" name="%2$s[%1$s]"><option value="">%3$s</option></select>',
-			esc_attr( $field ),
-			esc_attr( self::OPTION_NAME ),
-			esc_html__( 'Select location...', 'dh-google-reviews' )
-		);
+		if ( empty( $account_id ) ) {
+			echo '<select disabled><option>' . esc_html__( 'Select and save an account first', 'dh-google-reviews' ) . '</option></select>';
+			return;
+		}
+
+		$api       = new API();
+		$locations = $api->list_locations( $account_id );
+
+		if ( false === $locations ) {
+			$err_key = API::ERROR_TRANSIENT . '_' . get_current_user_id();
+			$error   = get_transient( $err_key );
+			delete_transient( $err_key );
+			echo '<div class="notice notice-error inline"><p>'
+				. '<strong>' . esc_html__( 'Could not load locations:', 'dh-google-reviews' ) . '</strong> '
+				. ( $error ? esc_html( $error ) : esc_html__( 'Unknown error.', 'dh-google-reviews' ) )
+				. '</p></div>';
+			echo '<select disabled><option>' . esc_html__( 'Reload page to retry', 'dh-google-reviews' ) . '</option></select>';
+			return;
+		}
+
+		if ( empty( $locations ) ) {
+			echo '<select disabled><option>' . esc_html__( 'No locations found for this account', 'dh-google-reviews' ) . '</option></select>';
+			return;
+		}
+
+		printf( '<select id="%1$s" name="%2$s[%1$s]">', esc_attr( $field ), esc_attr( self::OPTION_NAME ) );
+		echo '<option value="">' . esc_html__( 'Select location...', 'dh-google-reviews' ) . '</option>';
+
+		foreach ( $locations as $location ) {
+			$name  = $location['name'] ?? '';
+			$label = $location['title'] ?? $name;
+			printf(
+				'<option value="%s"%s>%s</option>',
+				esc_attr( $name ),
+				selected( $current, $name, false ),
+				esc_html( $label )
+			);
+		}
+
+		echo '</select>';
 	}
 
 	/**
