@@ -96,6 +96,15 @@ class Admin {
 			'post-new.php?post_type=' . CPT::POST_TYPE
 		);
 
+		// Locations taxonomy.
+		add_submenu_page(
+			'edit.php?post_type=' . CPT::POST_TYPE,
+			__( 'Locations', 'dh-google-reviews' ),
+			__( 'Locations', 'dh-google-reviews' ),
+			'manage_options',
+			'edit-tags.php?taxonomy=' . CPT::TAXONOMY . '&post_type=' . CPT::POST_TYPE
+		);
+
 		// Import / Export.
 		$this->page_hooks['import'] = add_submenu_page(
 			'edit.php?post_type=' . CPT::POST_TYPE,
