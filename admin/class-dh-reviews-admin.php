@@ -98,7 +98,31 @@ class Admin {
 	 * @return void
 	 */
 	public function enqueue_admin_assets( string $hook_suffix ): void {
-		// Stub: conditionally enqueue admin/css/dh-reviews-admin.css.
+		$screen = get_current_screen();
+		if ( ! $screen ) {
+			return;
+		}
+
+		// Load on all dh_review CPT screens: list table, edit, add new.
+		if ( CPT::POST_TYPE === $screen->post_type ) {
+			wp_enqueue_style(
+				'dh-reviews-admin',
+				DH_REVIEWS_URL . 'admin/css/dh-reviews-admin.css',
+				array(),
+				DH_REVIEWS_VERSION
+			);
+			return;
+		}
+
+		// Load on plugin custom admin pages: settings, import/export, sync log.
+		if ( false !== strpos( $hook_suffix, 'dh-reviews' ) ) {
+			wp_enqueue_style(
+				'dh-reviews-admin',
+				DH_REVIEWS_URL . 'admin/css/dh-reviews-admin.css',
+				array(),
+				DH_REVIEWS_VERSION
+			);
+		}
 	}
 
 	/**

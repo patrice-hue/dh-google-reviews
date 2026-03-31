@@ -10,3 +10,647 @@
  * @version 1.0.0
  * @see     SPEC.md Section 6.5 for custom property definitions
  */
+
+/* =============================================================================
+   CSS Custom Properties
+   ============================================================================= */
+
+.dh-reviews-wrap {
+	/* Card styling */
+	--dh-reviews-star-color: #FBBC04;
+	--dh-reviews-star-empty: #E0E0E0;
+	--dh-reviews-card-bg: #FFFFFF;
+	--dh-reviews-card-border: 1px solid #E5E7EB;
+	--dh-reviews-card-radius: 8px;
+	--dh-reviews-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	--dh-reviews-card-padding: 20px;
+
+	/* Typography */
+	--dh-reviews-font-name: inherit;
+	--dh-reviews-font-body: inherit;
+	--dh-reviews-font-size-name: 1rem;
+	--dh-reviews-font-size-body: 0.9375rem;
+	--dh-reviews-font-size-date: 0.8125rem;
+	--dh-reviews-color-name: #1A1A1A;
+	--dh-reviews-color-body: #4A4A4A;
+	--dh-reviews-color-date: #9B9B9B;
+
+	/* Layout */
+	--dh-reviews-gap: 20px;
+	--dh-reviews-max-width: 1200px;
+
+	/* Avatar (initial fallback circle) */
+	--dh-reviews-avatar-size: 48px;
+	--dh-reviews-avatar-font-size: 1.25rem;
+	--dh-reviews-avatar-color: #E67E22;
+	--dh-reviews-avatar-text-color: #FFFFFF;
+
+	/* Slider navigation */
+	--dh-reviews-arrow-size: 40px;
+	--dh-reviews-arrow-bg: #FFFFFF;
+	--dh-reviews-arrow-border: 1px solid #E5E7EB;
+	--dh-reviews-arrow-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	--dh-reviews-arrow-color: #333333;
+	--dh-reviews-arrow-hover-bg: #F9F9F9;
+
+	/* Dot pagination */
+	--dh-reviews-dot-size: 10px;
+	--dh-reviews-dot-color: #D1D5DB;
+	--dh-reviews-dot-active-color: #E67E22;
+	--dh-reviews-dot-gap: 8px;
+
+	/* CTA button */
+	--dh-reviews-cta-bg: #E67E22;
+	--dh-reviews-cta-hover-bg: #D35400;
+	--dh-reviews-cta-text-color: #FFFFFF;
+	--dh-reviews-cta-font-size: 1rem;
+	--dh-reviews-cta-padding: 14px 32px;
+	--dh-reviews-cta-radius: 6px;
+
+	/* Owner reply */
+	--dh-reviews-reply-bg: #F9FAFB;
+	--dh-reviews-reply-border-left: 3px solid #E5E7EB;
+	--dh-reviews-reply-font-size: 0.875rem;
+	--dh-reviews-reply-label-weight: 700;
+
+	/* Google icon */
+	--dh-reviews-google-icon-size: 20px;
+
+	/* Avatar colour palette (applied via PHP inline style) */
+	--dh-avatar-1: #E67E22;
+	--dh-avatar-2: #3498DB;
+	--dh-avatar-3: #E74C3C;
+	--dh-avatar-4: #2ECC71;
+	--dh-avatar-5: #9B59B6;
+	--dh-avatar-6: #1ABC9C;
+	--dh-avatar-7: #F39C12;
+	--dh-avatar-8: #34495E;
+}
+
+/* =============================================================================
+   Wrap base
+   ============================================================================= */
+
+.dh-reviews-wrap {
+	box-sizing: border-box;
+	max-width: var(--dh-reviews-max-width);
+	margin-left: auto;
+	margin-right: auto;
+	width: 100%;
+}
+
+.dh-reviews-wrap *,
+.dh-reviews-wrap *::before,
+.dh-reviews-wrap *::after {
+	box-sizing: inherit;
+}
+
+.dh-reviews-empty {
+	color: var(--dh-reviews-color-date);
+	font-size: var(--dh-reviews-font-size-body);
+	text-align: center;
+	padding: var(--dh-reviews-gap) 0;
+	margin: 0;
+}
+
+/* =============================================================================
+   Grid layout
+   ============================================================================= */
+
+.dh-reviews--grid .dh-reviews-cards {
+	display: grid;
+	gap: var(--dh-reviews-gap);
+	align-items: start;
+}
+
+.dh-reviews--grid[data-columns="1"] .dh-reviews-cards {
+	grid-template-columns: repeat(1, 1fr);
+}
+
+.dh-reviews--grid[data-columns="2"] .dh-reviews-cards {
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.dh-reviews--grid[data-columns="3"] .dh-reviews-cards {
+	grid-template-columns: repeat(3, 1fr);
+}
+
+.dh-reviews--grid[data-columns="4"] .dh-reviews-cards {
+	grid-template-columns: repeat(4, 1fr);
+}
+
+/* =============================================================================
+   Slider layout
+   ============================================================================= */
+
+.dh-reviews--slider .dh-reviews-slider {
+	position: relative;
+}
+
+.dh-reviews--slider .dh-reviews-cards {
+	display: flex;
+	gap: var(--dh-reviews-gap);
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	scroll-behavior: smooth;
+	scrollbar-width: none; /* Firefox */
+	-webkit-overflow-scrolling: touch;
+}
+
+.dh-reviews--slider .dh-reviews-cards::-webkit-scrollbar {
+	display: none; /* Chrome, Safari */
+}
+
+/* Card widths: calc((100% - (N-1) * gap) / N) */
+
+.dh-reviews--slider[data-visible="1"] .dh-review-card {
+	width: 100%;
+	flex-shrink: 0;
+}
+
+.dh-reviews--slider[data-visible="2"] .dh-review-card {
+	width: calc((100% - var(--dh-reviews-gap)) / 2);
+	flex-shrink: 0;
+}
+
+.dh-reviews--slider[data-visible="3"] .dh-review-card {
+	width: calc((100% - var(--dh-reviews-gap) * 2) / 3);
+	flex-shrink: 0;
+}
+
+.dh-reviews--slider[data-visible="4"] .dh-review-card {
+	width: calc((100% - var(--dh-reviews-gap) * 3) / 4);
+	flex-shrink: 0;
+}
+
+.dh-reviews--slider .dh-review-card {
+	scroll-snap-align: start;
+}
+
+/* =============================================================================
+   List layout
+   ============================================================================= */
+
+.dh-reviews--list .dh-reviews-cards {
+	display: flex;
+	flex-direction: column;
+	gap: var(--dh-reviews-gap);
+}
+
+/* =============================================================================
+   Aggregate bar
+   ============================================================================= */
+
+.dh-reviews-aggregate {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: var(--dh-reviews-gap);
+}
+
+.dh-reviews-aggregate__name {
+	font-family: var(--dh-reviews-font-name);
+	font-size: 1.0625rem;
+	font-weight: 700;
+	color: var(--dh-reviews-color-name);
+	line-height: 1.3;
+}
+
+.dh-reviews-aggregate__rating {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.dh-reviews-aggregate__score {
+	font-size: 2rem;
+	font-weight: 700;
+	color: var(--dh-reviews-color-name);
+	line-height: 1;
+}
+
+.dh-reviews-aggregate__stars {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.dh-reviews-aggregate__count {
+	font-family: var(--dh-reviews-font-body);
+	font-size: var(--dh-reviews-font-size-date);
+	color: var(--dh-reviews-color-date);
+}
+
+.dh-reviews-aggregate__powered {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: var(--dh-reviews-font-size-date);
+	color: var(--dh-reviews-color-date);
+}
+
+.dh-reviews-google-wordmark {
+	display: inline-block;
+	vertical-align: middle;
+	flex-shrink: 0;
+}
+
+/* Slider positions aggregate to the left */
+.dh-reviews--slider .dh-reviews-aggregate {
+	margin-bottom: calc(var(--dh-reviews-gap) * 0.75);
+}
+
+/* =============================================================================
+   Review card
+   ============================================================================= */
+
+.dh-review-card {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	background: var(--dh-reviews-card-bg);
+	border: var(--dh-reviews-card-border);
+	border-radius: var(--dh-reviews-card-radius);
+	box-shadow: var(--dh-reviews-card-shadow);
+	padding: var(--dh-reviews-card-padding);
+}
+
+/* Card header: avatar, google icon, meta */
+
+.dh-review-card__header {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.dh-review-card__avatar {
+	flex-shrink: 0;
+	width: var(--dh-reviews-avatar-size);
+	height: var(--dh-reviews-avatar-size);
+	border-radius: 50%;
+	overflow: hidden;
+	position: relative;
+}
+
+.dh-review-card__photo {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: 50%;
+}
+
+.dh-review-card__initial {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	font-size: var(--dh-reviews-avatar-font-size);
+	font-weight: 700;
+	color: var(--dh-reviews-avatar-text-color);
+	background-color: var(--dh-reviews-avatar-color);
+	line-height: 1;
+	text-transform: uppercase;
+	user-select: none;
+}
+
+.dh-review-card__google-icon {
+	width: var(--dh-reviews-google-icon-size);
+	height: var(--dh-reviews-google-icon-size);
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.dh-review-card__meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	flex: 1;
+}
+
+.dh-review-card__name {
+	font-family: var(--dh-reviews-font-name);
+	font-size: var(--dh-reviews-font-size-name);
+	font-weight: 600;
+	color: var(--dh-reviews-color-name);
+	line-height: 1.3;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dh-review-card__date {
+	font-family: var(--dh-reviews-font-body);
+	font-size: var(--dh-reviews-font-size-date);
+	color: var(--dh-reviews-color-date);
+	line-height: 1;
+}
+
+/* =============================================================================
+   Star ratings
+   ============================================================================= */
+
+.dh-review-card__stars,
+.dh-reviews-aggregate__stars {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.dh-star--filled {
+	color: var(--dh-reviews-star-color);
+	fill: currentColor;
+}
+
+.dh-star--empty {
+	color: var(--dh-reviews-star-empty);
+	fill: currentColor;
+}
+
+/* =============================================================================
+   Review body and read more
+   ============================================================================= */
+
+.dh-review-card__body {
+	font-family: var(--dh-reviews-font-body);
+	font-size: var(--dh-reviews-font-size-body);
+	color: var(--dh-reviews-color-body);
+	line-height: 1.6;
+}
+
+.dh-review-card__body p {
+	margin: 0 0 0.5em;
+}
+
+.dh-review-card__body p:last-child {
+	margin-bottom: 0;
+}
+
+.dh-review-card__excerpt,
+.dh-review-card__full {
+	margin: 0;
+}
+
+.dh-review-card__read-more {
+	display: inline-block;
+	margin-top: 6px;
+	padding: 0;
+	background: none;
+	border: none;
+	font-family: var(--dh-reviews-font-body);
+	font-size: var(--dh-reviews-font-size-body);
+	font-weight: 600;
+	color: var(--dh-reviews-cta-bg);
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	line-height: 1.4;
+}
+
+.dh-review-card__read-more:hover,
+.dh-review-card__read-more:focus-visible {
+	color: var(--dh-reviews-cta-hover-bg);
+	outline: 2px solid var(--dh-reviews-cta-bg);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+/* =============================================================================
+   Owner reply
+   ============================================================================= */
+
+.dh-review-card__reply {
+	background: var(--dh-reviews-reply-bg);
+	border-left: var(--dh-reviews-reply-border-left);
+	border-radius: 0 4px 4px 0;
+	padding: 12px 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.dh-review-card__reply-header {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.dh-review-card__reply-label {
+	font-family: var(--dh-reviews-font-name);
+	font-size: var(--dh-reviews-font-size-date);
+	font-weight: var(--dh-reviews-reply-label-weight);
+	color: var(--dh-reviews-color-name);
+}
+
+.dh-review-card__reply-date {
+	font-size: var(--dh-reviews-font-size-date);
+	color: var(--dh-reviews-color-date);
+}
+
+.dh-review-card__reply p {
+	margin: 0;
+	font-size: var(--dh-reviews-reply-font-size);
+	color: var(--dh-reviews-color-body);
+	line-height: 1.5;
+}
+
+/* =============================================================================
+   Slider arrows
+   ============================================================================= */
+
+.dh-reviews-slider__prev,
+.dh-reviews-slider__next {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--dh-reviews-arrow-size);
+	height: var(--dh-reviews-arrow-size);
+	background: var(--dh-reviews-arrow-bg);
+	border: var(--dh-reviews-arrow-border);
+	border-radius: 50%;
+	box-shadow: var(--dh-reviews-arrow-shadow);
+	color: var(--dh-reviews-arrow-color);
+	cursor: pointer;
+	padding: 0;
+	transition: background-color 0.15s ease;
+}
+
+.dh-reviews-slider__prev {
+	left: calc(var(--dh-reviews-arrow-size) * -0.5);
+}
+
+.dh-reviews-slider__next {
+	right: calc(var(--dh-reviews-arrow-size) * -0.5);
+}
+
+.dh-reviews-slider__prev:hover,
+.dh-reviews-slider__next:hover {
+	background: var(--dh-reviews-arrow-hover-bg);
+}
+
+.dh-reviews-slider__prev:focus-visible,
+.dh-reviews-slider__next:focus-visible {
+	outline: 2px solid var(--dh-reviews-cta-bg);
+	outline-offset: 2px;
+}
+
+/* Add horizontal padding to the slider so arrows don't overlap cards */
+.dh-reviews--slider {
+	padding-left: calc(var(--dh-reviews-arrow-size) * 0.75);
+	padding-right: calc(var(--dh-reviews-arrow-size) * 0.75);
+}
+
+/* =============================================================================
+   Dot pagination
+   ============================================================================= */
+
+.dh-reviews-dots {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: var(--dh-reviews-dot-gap);
+	margin-top: var(--dh-reviews-gap);
+}
+
+.dh-reviews-dots__dot {
+	width: var(--dh-reviews-dot-size);
+	height: var(--dh-reviews-dot-size);
+	border-radius: 50%;
+	background: var(--dh-reviews-dot-color);
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.dh-reviews-dots__dot--active,
+.dh-reviews-dots__dot:hover {
+	background: var(--dh-reviews-dot-active-color);
+}
+
+.dh-reviews-dots__dot--active {
+	transform: scale(1.25);
+}
+
+.dh-reviews-dots__dot:focus-visible {
+	outline: 2px solid var(--dh-reviews-dot-active-color);
+	outline-offset: 2px;
+}
+
+/* =============================================================================
+   CTA button
+   ============================================================================= */
+
+.dh-reviews-cta {
+	display: flex;
+	justify-content: center;
+	margin-top: var(--dh-reviews-gap);
+}
+
+.dh-reviews-cta__button {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	background: var(--dh-reviews-cta-bg);
+	color: var(--dh-reviews-cta-text-color);
+	font-size: var(--dh-reviews-cta-font-size);
+	font-weight: 600;
+	padding: var(--dh-reviews-cta-padding);
+	border-radius: var(--dh-reviews-cta-radius);
+	text-decoration: none;
+	transition: background-color 0.15s ease;
+	border: none;
+	cursor: pointer;
+	line-height: 1.2;
+}
+
+.dh-reviews-cta__button:hover,
+.dh-reviews-cta__button:focus-visible {
+	background: var(--dh-reviews-cta-hover-bg);
+	color: var(--dh-reviews-cta-text-color);
+	text-decoration: none;
+}
+
+.dh-reviews-cta__button:focus-visible {
+	outline: 2px solid var(--dh-reviews-cta-hover-bg);
+	outline-offset: 2px;
+}
+
+.dh-reviews-cta__google-icon {
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+}
+
+/* =============================================================================
+   Responsive: 768px (tablet)
+   ============================================================================= */
+
+@media (max-width: 768px) {
+	/* Grid: force 2 columns.
+	   Using [data-columns] (attribute presence) gives the same specificity
+	   as [data-columns="N"] so no !important needed. */
+	.dh-reviews--grid[data-columns] .dh-reviews-cards {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	/* Slider: force 2-up regardless of data-visible value */
+	.dh-reviews--slider[data-visible] .dh-review-card {
+		width: calc((100% - var(--dh-reviews-gap)) / 2);
+	}
+
+	/* Slightly smaller arrow offset so they don't clip on tablet */
+	.dh-reviews--slider {
+		padding-left: calc(var(--dh-reviews-arrow-size) * 0.5);
+		padding-right: calc(var(--dh-reviews-arrow-size) * 0.5);
+	}
+
+	.dh-reviews-slider__prev {
+		left: calc(var(--dh-reviews-arrow-size) * -0.35);
+	}
+
+	.dh-reviews-slider__next {
+		right: calc(var(--dh-reviews-arrow-size) * -0.35);
+	}
+}
+
+/* =============================================================================
+   Responsive: 480px (mobile)
+   ============================================================================= */
+
+@media (max-width: 480px) {
+	/* Grid: force 1 column */
+	.dh-reviews--grid[data-columns] .dh-reviews-cards {
+		grid-template-columns: repeat(1, 1fr);
+	}
+
+	/* Slider: force 1-up */
+	.dh-reviews--slider[data-visible] .dh-review-card {
+		width: 100%;
+	}
+
+	/* Hide arrows on small screens; touch scroll is sufficient */
+	.dh-reviews-slider__prev,
+	.dh-reviews-slider__next {
+		display: none;
+	}
+
+	.dh-reviews--slider {
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	.dh-reviews-cta__button {
+		width: 100%;
+		justify-content: center;
+	}
+}

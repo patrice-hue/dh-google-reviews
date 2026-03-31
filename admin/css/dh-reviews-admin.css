@@ -1,9 +1,211 @@
 /**
  * DH Google Reviews - Admin Styles
  *
- * Styles for the plugin settings pages, import/export forms,
- * and sync log display.
+ * Styles for the plugin settings pages, CPT meta boxes,
+ * import/export form, and sync log display.
  *
  * @package DH_Reviews
  * @version 1.0.0
  */
+
+/* =============================================================================
+   Settings page layout
+   ============================================================================= */
+
+.dh-reviews-settings-wrap {
+	max-width: 900px;
+}
+
+.dh-reviews-settings-wrap h2 {
+	margin-top: 1.5em;
+	padding-bottom: 0.4em;
+	border-bottom: 1px solid #dcdcde;
+}
+
+/* =============================================================================
+   Meta box form table (CPT edit screen)
+   ============================================================================= */
+
+#dh-review-details .form-table th {
+	width: 180px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+#dh-review-details .form-table td {
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+#dh-review-details .form-table .description {
+	margin-top: 4px;
+	font-size: 12px;
+	color: #646970;
+}
+
+/* =============================================================================
+   API connection status badge
+   ============================================================================= */
+
+.dh-reviews-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.dh-reviews-status::before {
+	content: '';
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.dh-reviews-status--connected {
+	background: #ecfdf5;
+	color: #065f46;
+}
+
+.dh-reviews-status--connected::before {
+	background: #10b981;
+}
+
+.dh-reviews-status--disconnected {
+	background: #fef2f2;
+	color: #991b1b;
+}
+
+.dh-reviews-status--disconnected::before {
+	background: #ef4444;
+}
+
+/* =============================================================================
+   Admin notice / info box
+   ============================================================================= */
+
+.dh-reviews-admin-notice {
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	padding: 12px 16px;
+	margin: 16px 0;
+	border-radius: 0 4px 4px 0;
+	font-size: 13px;
+	color: #1d2327;
+	line-height: 1.5;
+}
+
+.dh-reviews-admin-notice p {
+	margin: 0;
+}
+
+.dh-reviews-admin-notice p + p {
+	margin-top: 6px;
+}
+
+/* =============================================================================
+   Sync log table
+   ============================================================================= */
+
+.dh-reviews-sync-log table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 12px;
+}
+
+.dh-reviews-sync-log th,
+.dh-reviews-sync-log td {
+	padding: 8px 12px;
+	font-size: 13px;
+	text-align: left;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.dh-reviews-sync-log th {
+	font-weight: 600;
+	background: #f6f7f7;
+	color: #1d2327;
+}
+
+.dh-reviews-sync-log tr:last-child td {
+	border-bottom: none;
+}
+
+.dh-reviews-sync-log tr:nth-child(even) td {
+	background: #f9f9f9;
+}
+
+.dh-reviews-sync-log .col-time {
+	width: 180px;
+	white-space: nowrap;
+}
+
+.dh-reviews-sync-log .col-new,
+.dh-reviews-sync-log .col-updated,
+.dh-reviews-sync-log .col-trashed {
+	width: 80px;
+	text-align: center;
+}
+
+.dh-reviews-sync-log .col-errors {
+	color: #b91c1c;
+}
+
+.dh-reviews-sync-log .sync-count {
+	font-weight: 600;
+}
+
+/* =============================================================================
+   Import / export page
+   ============================================================================= */
+
+.dh-reviews-import-form {
+	max-width: 540px;
+}
+
+.dh-reviews-import-form .form-table th {
+	width: 160px;
+}
+
+.dh-reviews-import-result {
+	margin-top: 16px;
+	padding: 12px 16px;
+	border-radius: 4px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.dh-reviews-import-result--success {
+	background: #ecfdf5;
+	border: 1px solid #a7f3d0;
+	color: #065f46;
+}
+
+.dh-reviews-import-result--error {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	color: #991b1b;
+}
+
+.dh-reviews-export-section {
+	margin-top: 24px;
+	padding-top: 24px;
+	border-top: 1px solid #dcdcde;
+}
+
+/* =============================================================================
+   Star rating display in list table column
+   ============================================================================= */
+
+.column-dh_star_rating {
+	width: 110px;
+}
+
+.column-dh_source {
+	width: 110px;
+}
