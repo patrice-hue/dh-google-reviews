@@ -87,6 +87,7 @@ function dh_reviews_init(): void {
 	new Schema();
 	new Block();
 	new Photo_Proxy();
+	new Sync();
 }
 add_action( 'init', __NAMESPACE__ . '\\dh_reviews_init' );
 
@@ -97,7 +98,6 @@ add_action( 'init', __NAMESPACE__ . '\\dh_reviews_init' );
  */
 function dh_reviews_admin_init(): void {
 	new Admin();
-	new Sync();
 	new Import();
 	new Export();
 }

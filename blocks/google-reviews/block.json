@@ -107,6 +107,5 @@
 			"default": ""
 		}
 	},
-	"editorScript": "file:../../blocks/build/index.js",
-	"render": "file:../../includes/class-dh-reviews-block.php"
+	"editorScript": "file:../build/index.js"
 }
