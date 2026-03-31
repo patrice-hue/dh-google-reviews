@@ -30,6 +30,12 @@
 				return;
 			}
 
+			// When there are fewer cards than visible_cards, centre them instead of
+			// bunching them to the left.  CSS targets .dh-reviews--underflow.
+			if ( cards.length > 0 && cards.length < visible ) {
+				wrap.classList.add( 'dh-reviews--underflow' );
+			}
+
 			// Prev / next buttons scroll by one full viewport of the track.
 			if ( prev ) {
 				prev.addEventListener( 'click', function () {

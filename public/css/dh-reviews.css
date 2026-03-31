@@ -185,6 +185,17 @@
 
 .dh-reviews--slider .dh-review-card {
 	scroll-snap-align: start;
+	/* Never let a card get narrower than 300px or wider than 400px.
+	   The min-width ensures cards remain readable when fewer cards exist than
+	   visible_cards; the max-width prevents overly wide cards on large screens. */
+	min-width: 300px;
+	max-width: 400px;
+}
+
+/* When there are fewer cards than visible_cards (JS adds this class), centre the
+   cards in the available space instead of bunching them to the left. */
+.dh-reviews--slider.dh-reviews--underflow .dh-reviews-cards {
+	justify-content: center;
 }
 
 /* =============================================================================

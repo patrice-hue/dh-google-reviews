@@ -478,25 +478,31 @@ class Render {
 			return date_i18n( get_option( 'date_format' ), $timestamp );
 		}
 
-		$diff   = time() - $timestamp;
+		// Use current_time('timestamp') so the comparison is in the site's local timezone,
+		// matching the local-time string stored in post_date.
+		$diff   = current_time( 'timestamp' ) - $timestamp;
 		$days   = (int) floor( $diff / DAY_IN_SECONDS );
 		$weeks  = (int) floor( $diff / WEEK_IN_SECONDS );
 		$months = (int) floor( $diff / MONTH_IN_SECONDS );
 		$years  = (int) floor( $diff / YEAR_IN_SECONDS );
 
 		if ( $days < 1 ) {
-			return 'today';
+			return esc_html__( 'today', 'dh-google-reviews' );
 		}
 		if ( $days < 7 ) {
-			return sprintf( '%d %s ago', $days, 1 === $days ? 'day' : 'days' );
+			/* translators: %d: number of days */
+			return sprintf( _n( '%d day ago', '%d days ago', $days, 'dh-google-reviews' ), $days );
 		}
 		if ( $weeks < 5 ) {
-			return sprintf( '%d %s ago', $weeks, 1 === $weeks ? 'week' : 'weeks' );
+			/* translators: %d: number of weeks */
+			return sprintf( _n( '%d week ago', '%d weeks ago', $weeks, 'dh-google-reviews' ), $weeks );
 		}
 		if ( $months < 12 ) {
-			return sprintf( '%d %s ago', max( 1, $months ), 1 === $months ? 'month' : 'months' );
+			/* translators: %d: number of months */
+			return sprintf( _n( '%d month ago', '%d months ago', max( 1, $months ), 'dh-google-reviews' ), max( 1, $months ) );
 		}
-		return sprintf( '%d %s ago', max( 1, $years ), 1 === $years ? 'year' : 'years' );
+		/* translators: %d: number of years */
+		return sprintf( _n( '%d year ago', '%d years ago', max( 1, $years ), 'dh-google-reviews' ), max( 1, $years ) );
 	}
 
 	/**

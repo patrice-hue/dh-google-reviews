@@ -616,9 +616,27 @@ class CPT {
 			update_post_meta( $post_id, '_dh_gbp_review_id', sanitize_text_field( wp_unslash( $_POST['dh_gbp_review_id'] ) ) );
 		}
 
-		// Review updated datetime.
+		// Review updated datetime — also sync to post_date so relative date display is correct.
+		// The template uses $review->post_date for the card date; if we only save to meta,
+		// post_date stays as the time the post was created (today), showing "today" forever.
 		if ( isset( $_POST['dh_review_updated'] ) ) {
-			update_post_meta( $post_id, '_dh_review_updated', sanitize_text_field( wp_unslash( $_POST['dh_review_updated'] ) ) );
+			$raw = sanitize_text_field( wp_unslash( $_POST['dh_review_updated'] ) );
+			update_post_meta( $post_id, '_dh_review_updated', $raw );
+
+			if ( $raw ) {
+				$ts = strtotime( $raw );
+				if ( $ts ) {
+					// Remove hook before calling wp_update_post to prevent infinite recursion.
+					remove_action( 'save_post_' . self::POST_TYPE, array( $this, 'save_meta_box' ), 10 );
+					wp_update_post( array(
+						'ID'            => $post_id,
+						'post_date'     => date( 'Y-m-d H:i:s', $ts ),
+						'post_date_gmt' => gmdate( 'Y-m-d H:i:s', $ts ),
+						'edit_date'     => true,
+					) );
+					add_action( 'save_post_' . self::POST_TYPE, array( $this, 'save_meta_box' ), 10, 2 );
+				}
+			}
 		}
 
 		// Owner reply.
