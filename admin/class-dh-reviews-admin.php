@@ -46,6 +46,7 @@ class Admin {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_menus' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_init', array( $this, 'handle_cache_refresh' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'admin_post_dh_reviews_connect_oauth', array( $this, 'handle_connect_oauth' ) );
 	}
@@ -1029,6 +1030,52 @@ class Admin {
 	}
 
 	// -------------------------------------------------------------------------
+	// Cache refresh handler
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Handle the "Refresh" link that clears a cached API list.
+	 *
+	 * Triggered by GET ?dh_refresh_cache=accounts|locations with a nonce.
+	 * Deletes the relevant transient then redirects back to the settings page
+	 * so the next page load fetches fresh data from the GBP API.
+	 *
+	 * Hooked on admin_init.
+	 *
+	 * @return void
+	 */
+	public function handle_cache_refresh(): void {
+		if ( ! isset( $_GET['dh_refresh_cache'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'dh_refresh_cache' ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'dh-google-reviews' ) );
+		}
+
+		$what = sanitize_key( wp_unslash( $_GET['dh_refresh_cache'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+
+		if ( 'accounts' === $what ) {
+			delete_transient( API::ACCOUNTS_CACHE );
+		} elseif ( 'locations' === $what ) {
+			$settings   = get_option( self::OPTION_NAME, array() );
+			$account_id = $settings['google_account_id'] ?? '';
+			if ( $account_id ) {
+				$cache_key = API::LOCATIONS_CACHE_PREFIX
+					. sanitize_key( str_replace( '/', '_', $account_id ) );
+				delete_transient( $cache_key );
+			}
+		}
+
+		wp_safe_redirect( admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings' ) );
+		exit;
+	}
+
+	// -------------------------------------------------------------------------
 	// OAuth connect handler
 	// -------------------------------------------------------------------------
 
@@ -1638,6 +1685,9 @@ class Admin {
 	/**
 	 * Render the Account selector dropdown, populated from the GBP API.
 	 *
+	 * Results are read from the ACCOUNTS_CACHE transient (1 h). A "Refresh"
+	 * link next to the dropdown lets the user bust the cache on demand.
+	 *
 	 * @param array $args Field arguments.
 	 * @return void
 	 */
@@ -1651,6 +1701,11 @@ class Admin {
 			echo '<select disabled><option>' . esc_html__( 'Connect Google Account first', 'dh-google-reviews' ) . '</option></select>';
 			return;
 		}
+
+		$refresh_url = wp_nonce_url(
+			admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings&dh_refresh_cache=accounts' ),
+			'dh_refresh_cache'
+		);
 
 		$api      = new API();
 		$accounts = $api->list_accounts();
@@ -1669,6 +1724,8 @@ class Admin {
 
 		if ( empty( $accounts ) ) {
 			echo '<select disabled><option>' . esc_html__( 'No Google Business accounts found', 'dh-google-reviews' ) . '</option></select>';
+			echo ' <a href="' . esc_url( $refresh_url ) . '" class="dh-reviews-cache-refresh">'
+				. esc_html__( 'Refresh', 'dh-google-reviews' ) . '</a>';
 			return;
 		}
 
@@ -1687,10 +1744,15 @@ class Admin {
 		}
 
 		echo '</select>';
+		echo ' <a href="' . esc_url( $refresh_url ) . '" class="dh-reviews-cache-refresh">'
+			. esc_html__( 'Refresh', 'dh-google-reviews' ) . '</a>';
 	}
 
 	/**
 	 * Render the Location selector dropdown, populated from the GBP API.
+	 *
+	 * Results are read from a per-account transient (1 h). A "Refresh" link
+	 * next to the dropdown lets the user bust the cache on demand.
 	 *
 	 * @param array $args Field arguments.
 	 * @return void
@@ -1712,6 +1774,11 @@ class Admin {
 			return;
 		}
 
+		$refresh_url = wp_nonce_url(
+			admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings&dh_refresh_cache=locations' ),
+			'dh_refresh_cache'
+		);
+
 		$api       = new API();
 		$locations = $api->list_locations( $account_id );
 
@@ -1729,6 +1796,8 @@ class Admin {
 
 		if ( empty( $locations ) ) {
 			echo '<select disabled><option>' . esc_html__( 'No locations found for this account', 'dh-google-reviews' ) . '</option></select>';
+			echo ' <a href="' . esc_url( $refresh_url ) . '" class="dh-reviews-cache-refresh">'
+				. esc_html__( 'Refresh', 'dh-google-reviews' ) . '</a>';
 			return;
 		}
 
@@ -1747,6 +1816,8 @@ class Admin {
 		}
 
 		echo '</select>';
+		echo ' <a href="' . esc_url( $refresh_url ) . '" class="dh-reviews-cache-refresh">'
+			. esc_html__( 'Refresh', 'dh-google-reviews' ) . '</a>';
 	}
 
 	/**

@@ -377,3 +377,20 @@
 	font-weight: 600;
 	font-size: 13px;
 }
+
+/* =============================================================================
+   Cache refresh link (next to Account / Location dropdowns)
+   ============================================================================= */
+
+.dh-reviews-cache-refresh {
+	margin-left: 6px;
+	font-size: 12px;
+	color: #646970;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.dh-reviews-cache-refresh:hover {
+	color: #2271b1;
+	text-decoration: underline;
+}

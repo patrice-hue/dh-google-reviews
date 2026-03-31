@@ -74,6 +74,21 @@ class API {
 	const ERROR_TRANSIENT = 'dh_reviews_api_error';
 
 	/**
+	 * Transient key for caching the GBP accounts list (1 hour).
+	 *
+	 * @var string
+	 */
+	const ACCOUNTS_CACHE = 'dh_reviews_accounts_cache';
+
+	/**
+	 * Transient key prefix for caching per-account location lists (1 hour).
+	 * Append sanitize_key( str_replace( '/', '_', $account_name ) ) to form the full key.
+	 *
+	 * @var string
+	 */
+	const LOCATIONS_CACHE_PREFIX = 'dh_reviews_locations_cache_';
+
+	/**
 	 * Constructor.
 	 *
 	 * Registers hooks for the OAuth callback handler and admin notices.
@@ -302,9 +317,16 @@ class API {
 	/**
 	 * Fetch the list of GBP accounts for the authenticated user.
 	 *
+	 * Results are cached for 1 hour via the ACCOUNTS_CACHE transient.
+	 *
 	 * @return array|false Array of account objects or false on failure.
 	 */
 	public function list_accounts() {
+		$cached = get_transient( self::ACCOUNTS_CACHE );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
 		$token = $this->get_access_token();
 		if ( '' === $token ) {
 			return false;
@@ -318,16 +340,33 @@ class API {
 			)
 		);
 
-		return $this->parse_response( $response, 'accounts' );
+		$data = $this->parse_response( $response, 'accounts' );
+
+		if ( false !== $data ) {
+			set_transient( self::ACCOUNTS_CACHE, $data, HOUR_IN_SECONDS );
+		}
+
+		return $data;
 	}
 
 	/**
 	 * Fetch locations for a given GBP account.
 	 *
+	 * Results are cached for 1 hour via a per-account transient keyed with
+	 * LOCATIONS_CACHE_PREFIX + sanitize_key( str_replace( '/', '_', $account_name ) ).
+	 *
 	 * @param string $account_name Account resource name (e.g. accounts/123456789).
 	 * @return array|false Array of location objects or false on failure.
 	 */
 	public function list_locations( string $account_name ) {
+		$cache_key = self::LOCATIONS_CACHE_PREFIX
+			. sanitize_key( str_replace( '/', '_', $account_name ) );
+
+		$cached = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
 		$token = $this->get_access_token();
 		if ( '' === $token ) {
 			return false;
@@ -344,7 +383,13 @@ class API {
 			)
 		);
 
-		return $this->parse_response( $response, 'locations' );
+		$data = $this->parse_response( $response, 'locations' );
+
+		if ( false !== $data ) {
+			set_transient( $cache_key, $data, HOUR_IN_SECONDS );
+		}
+
+		return $data;
 	}
 
 	/**
@@ -423,11 +468,13 @@ class API {
 	}
 
 	/**
-	 * Remove all stored token data from the settings option.
+	 * Remove all stored token data from the settings option and clear API caches.
 	 *
 	 * @return void
 	 */
 	public function disconnect(): void {
+		global $wpdb;
+
 		$settings = get_option( self::OPTION_NAME, array() );
 
 		$settings['oauth_access_token']    = '';
@@ -438,6 +485,19 @@ class API {
 		$settings['google_location_id']    = '';
 
 		update_option( self::OPTION_NAME, $settings );
+
+		// Clear cached account and location lists.
+		delete_transient( self::ACCOUNTS_CACHE );
+
+		// Delete all location cache transients (one per account that was ever queried).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+				$wpdb->esc_like( '_transient_' . self::LOCATIONS_CACHE_PREFIX ) . '%',
+				$wpdb->esc_like( '_transient_timeout_' . self::LOCATIONS_CACHE_PREFIX ) . '%'
+			)
+		);
 	}
 
 	/**
