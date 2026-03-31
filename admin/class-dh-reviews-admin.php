@@ -47,6 +47,7 @@ class Admin {
 		add_action( 'admin_menu', array( $this, 'register_menus' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+		add_action( 'admin_post_dh_reviews_connect_oauth', array( $this, 'handle_connect_oauth' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -585,6 +586,77 @@ class Admin {
 	}
 
 	// -------------------------------------------------------------------------
+	// OAuth connect handler
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Handle the "Connect Google Account" form POST.
+	 *
+	 * Saves the Client ID and Client Secret supplied in the POST body,
+	 * then immediately redirects the browser to the Google OAuth
+	 * authorisation URL — so the user never needs to click Save Changes
+	 * before connecting.
+	 *
+	 * Hooked on admin_post_dh_reviews_connect_oauth.
+	 *
+	 * @return void
+	 */
+	public function handle_connect_oauth(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'dh-google-reviews' ) );
+		}
+
+		if (
+			! isset( $_POST['_wpnonce'] ) ||
+			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'dh_reviews_connect_oauth' )
+		) {
+			wp_die( esc_html__( 'Security check failed.', 'dh-google-reviews' ) );
+		}
+
+		$settings = get_option( self::OPTION_NAME, array() );
+
+		// Persist Client ID if submitted and not locked by a wp-config constant.
+		if ( ! defined( 'DH_REVIEWS_CLIENT_ID' ) ) {
+			$client_id = sanitize_text_field( wp_unslash( $_POST['google_client_id'] ?? '' ) );
+			if ( '' !== $client_id ) {
+				$settings['google_client_id'] = $client_id;
+			}
+		}
+
+		// Persist Client Secret if submitted and not locked by a wp-config constant.
+		// An empty submission means the user left the field blank — keep the value
+		// already stored (the field intentionally never echoes the stored secret).
+		if ( ! defined( 'DH_REVIEWS_CLIENT_SECRET' ) ) {
+			$client_secret = sanitize_text_field( wp_unslash( $_POST['google_client_secret'] ?? '' ) );
+			if ( '' !== $client_secret ) {
+				$settings['google_client_secret'] = $client_secret;
+			}
+		}
+
+		update_option( self::OPTION_NAME, $settings );
+
+		// Verify both credentials are now in place (constant or stored).
+		$has_id     = defined( 'DH_REVIEWS_CLIENT_ID' ) || ! empty( $settings['google_client_id'] );
+		$has_secret = defined( 'DH_REVIEWS_CLIENT_SECRET' ) || ! empty( $settings['google_client_secret'] );
+
+		if ( ! $has_id || ! $has_secret ) {
+			// Surface the error through the same transient the API class reads.
+			set_transient(
+				'dh_reviews_api_error_' . get_current_user_id(),
+				__( 'Please enter your Google Cloud Client ID and Client Secret before connecting.', 'dh-google-reviews' ),
+				5 * MINUTE_IN_SECONDS
+			);
+			wp_safe_redirect( admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings' ) );
+			exit;
+		}
+
+		// Credentials saved — redirect to Google's OAuth consent screen.
+		$api = new API();
+		wp_redirect( $api->get_auth_url() ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+		exit;
+	}
+
+	// -------------------------------------------------------------------------
 	// Asset enqueuing
 	// -------------------------------------------------------------------------
 
@@ -1077,16 +1149,46 @@ class Admin {
 		} else {
 			echo '<span class="dh-reviews-status dh-reviews-status--disconnected">' . esc_html__( 'Not connected', 'dh-google-reviews' ) . '</span>';
 			echo '<br><br>';
-			$connect_url = wp_nonce_url(
-				admin_url( 'edit.php?post_type=' . CPT::POST_TYPE . '&page=dh-reviews-settings&dh_oauth_initiate=1' ),
-				'dh_oauth_initiate'
-			);
-			printf(
-				'<a href="%s" class="button button-primary">%s</a>',
-				esc_url( $connect_url ),
-				esc_html__( 'Connect Google Account', 'dh-google-reviews' )
-			);
-			echo '<p class="description">' . esc_html__( 'Save your Client ID and Secret first, then click Connect.', 'dh-google-reviews' ) . '</p>';
+
+			$nonce = wp_create_nonce( 'dh_reviews_connect_oauth' );
+			?>
+			<button type="button" id="dh-reviews-connect-btn" class="button button-primary">
+				<?php esc_html_e( 'Connect Google Account', 'dh-google-reviews' ); ?>
+			</button>
+			<script>
+			( function () {
+				var btn = document.getElementById( 'dh-reviews-connect-btn' );
+				if ( ! btn ) { return; }
+
+				btn.addEventListener( 'click', function () {
+					var idField  = document.getElementById( 'google_client_id' );
+					var secField = document.getElementById( 'google_client_secret' );
+
+					var form = document.createElement( 'form' );
+					form.method = 'POST';
+					form.action = <?php echo wp_json_encode( admin_url( 'admin-post.php' ) ); ?>;
+
+					var fields = {
+						'action'              : 'dh_reviews_connect_oauth',
+						'_wpnonce'            : <?php echo wp_json_encode( $nonce ); ?>,
+						'google_client_id'    : idField  ? idField.value  : '',
+						'google_client_secret': secField ? secField.value : ''
+					};
+
+					Object.keys( fields ).forEach( function ( key ) {
+						var input   = document.createElement( 'input' );
+						input.type  = 'hidden';
+						input.name  = key;
+						input.value = fields[ key ];
+						form.appendChild( input );
+					} );
+
+					document.body.appendChild( form );
+					form.submit();
+				} );
+			}() );
+			</script>
+			<?php
 		}
 	}
 
