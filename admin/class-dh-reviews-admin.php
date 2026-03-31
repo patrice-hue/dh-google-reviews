@@ -172,7 +172,11 @@ class Admin {
 				array( $this, 'render_field_text' ),
 				'dh-reviews-settings',
 				'dh_reviews_api',
-				array( 'field' => 'google_client_id', 'class' => 'regular-text' )
+				array(
+					'field'       => 'google_client_id',
+					'class'       => 'regular-text',
+					'description' => __( 'Found in Google Cloud Console > APIs & Services > Credentials', 'dh-google-reviews' ),
+				)
 			);
 		}
 
@@ -183,7 +187,10 @@ class Admin {
 				array( $this, 'render_field_password' ),
 				'dh-reviews-settings',
 				'dh_reviews_api',
-				array( 'field' => 'google_client_secret' )
+				array(
+					'field'       => 'google_client_secret',
+					'description' => __( 'Shown only once when creating the credential. If lost, create a new one.', 'dh-google-reviews' ),
+				)
 			);
 		}
 
@@ -748,6 +755,50 @@ class Admin {
 			}
 			echo '</p></div>';
 		}
+
+		$redirect_uri = admin_url( 'admin.php?page=dh-reviews-oauth-callback' );
+		?>
+		<details class="dh-reviews-help-panel">
+			<summary><?php esc_html_e( 'How to get your Google Cloud credentials', 'dh-google-reviews' ); ?></summary>
+			<div class="dh-reviews-help-panel__body">
+				<ol>
+					<li><?php
+						printf(
+							/* translators: %s: URL */
+							esc_html__( 'Go to Google Cloud Console: %s', 'dh-google-reviews' ),
+							'<a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer">https://console.cloud.google.com/</a>'
+						);
+					?></li>
+					<li><?php esc_html_e( 'Create a new project or select an existing one.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Go to APIs & Services > Library.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Search for and enable these two APIs:', 'dh-google-reviews' ); ?>
+						<ul>
+							<li><strong>My Business Account Management API</strong></li>
+							<li><strong>My Business Business Information API</strong></li>
+						</ul>
+					</li>
+					<li><?php esc_html_e( 'Go to APIs & Services > Credentials.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Click Create Credentials > OAuth 2.0 Client ID.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'If prompted, configure the OAuth consent screen first:', 'dh-google-reviews' ); ?>
+						<ul>
+							<li><?php esc_html_e( 'User Type: External', 'dh-google-reviews' ); ?></li>
+							<li><?php esc_html_e( 'App name: your business name', 'dh-google-reviews' ); ?></li>
+							<li><?php esc_html_e( 'Support email: your email address', 'dh-google-reviews' ); ?></li>
+							<li><?php esc_html_e( 'Authorized domains: your website domain', 'dh-google-reviews' ); ?></li>
+							<li><?php esc_html_e( 'Save and continue through all steps.', 'dh-google-reviews' ); ?></li>
+						</ul>
+					</li>
+					<li><?php esc_html_e( 'Back in Credentials, click Create Credentials > OAuth 2.0 Client ID.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Application type: Web application.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Name: DH Google Reviews (or any name you prefer).', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Under Authorized redirect URIs, click Add URI and enter:', 'dh-google-reviews' ); ?>
+						<code class="dh-reviews-redirect-uri"><?php echo esc_html( $redirect_uri ); ?></code>
+					</li>
+					<li><?php esc_html_e( 'Click Create, then copy the Client ID and Client Secret into the fields below.', 'dh-google-reviews' ); ?></li>
+				</ol>
+			</div>
+		</details>
+		<?php
 	}
 
 	/**
@@ -834,6 +885,7 @@ class Admin {
 		$settings = get_option( self::OPTION_NAME, array() );
 		$field    = $args['field'];
 		$has_val  = ! empty( $settings[ $field ] );
+		$desc     = $args['description'] ?? '';
 
 		// Never echo the stored secret. Show a placeholder if one is saved.
 		printf(
@@ -844,6 +896,9 @@ class Admin {
 		);
 		if ( $has_val ) {
 			echo '<p class="description">' . esc_html__( 'A secret is already saved. Enter a new value to replace it, or leave blank to keep the existing one.', 'dh-google-reviews' ) . '</p>';
+		}
+		if ( $desc ) {
+			echo '<p class="description">' . esc_html( $desc ) . '</p>';
 		}
 	}
 
