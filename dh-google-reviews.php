@@ -3,7 +3,7 @@
  * Plugin Name: DH Google Reviews
  * Plugin URI:  https://digitalhitmen.com.au
  * Description: Display Google Business Profile reviews on your WordPress site with shortcodes, Gutenberg blocks, and automatic schema markup output.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Author:      Digital Hitmen
  * Author URI:  https://digitalhitmen.com.au
  * License:     GPL-2.0-or-later
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @var string
  */
-define( 'DH_REVIEWS_VERSION', '1.0.0' );
+define( 'DH_REVIEWS_VERSION', '1.0.1' );
 
 /**
  * Plugin directory path (with trailing slash).

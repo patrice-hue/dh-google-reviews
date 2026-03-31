@@ -4,7 +4,7 @@ Tags: google reviews, business reviews, schema, ratings, testimonials
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,12 @@ A lightweight WordPress plugin that pulls live reviews from Google Business Prof
 3. Navigate to Reviews > Settings to configure API connection and display options
 
 == Changelog ==
+
+= 1.0.1 =
+* Add shortcode generator admin page
+* Cache GBP account and location API responses (1 hour) with manual refresh links
+* Populate Account and Location dropdowns from GBP API on settings page load
+* Clear API caches on OAuth disconnect
 
 = 1.0.0 =
 * Initial release
