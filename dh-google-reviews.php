@@ -60,7 +60,17 @@ require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-export.php';
 require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-photo-proxy.php';
 require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-activator.php';
 require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-deactivator.php';
+require_once DH_REVIEWS_PATH . 'includes/class-dh-reviews-updater.php';
 require_once DH_REVIEWS_PATH . 'admin/class-dh-reviews-admin.php';
+
+/*
+|--------------------------------------------------------------------------
+| Auto-updater (must run before init so update checks are available early)
+|--------------------------------------------------------------------------
+*/
+add_action( 'plugins_loaded', function () {
+	new Updater();
+} );
 
 /*
 |--------------------------------------------------------------------------
