@@ -106,6 +106,16 @@ class Admin {
 			'edit-tags.php?taxonomy=' . CPT::TAXONOMY . '&post_type=' . CPT::POST_TYPE
 		);
 
+		// Shortcode Generator.
+		$this->page_hooks['shortcode_gen'] = add_submenu_page(
+			'edit.php?post_type=' . CPT::POST_TYPE,
+			__( 'Shortcode Generator', 'dh-google-reviews' ),
+			__( 'Shortcode Generator', 'dh-google-reviews' ),
+			'manage_options',
+			'dh-reviews-shortcode-gen',
+			array( $this, 'render_shortcode_generator_page' )
+		);
+
 		// Import / Export.
 		$this->page_hooks['import'] = add_submenu_page(
 			'edit.php?post_type=' . CPT::POST_TYPE,
@@ -584,6 +594,403 @@ class Admin {
 	// -------------------------------------------------------------------------
 	// Page renderers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Render the Shortcode Generator page.
+	 *
+	 * Provides a visual form for building [dh_reviews] shortcodes with live
+	 * preview. Only attributes that differ from the defaults are included in
+	 * the generated output.
+	 *
+	 * @return void
+	 */
+	public function render_shortcode_generator_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'dh-google-reviews' ) );
+		}
+
+		// Taxonomy terms for the Location dropdown.
+		$terms = get_terms(
+			array(
+				'taxonomy'   => CPT::TAXONOMY,
+				'hide_empty' => false,
+			)
+		);
+		if ( is_wp_error( $terms ) ) {
+			$terms = array();
+		}
+
+		// Toggles: [ attr => label ]
+		$display_toggles = array(
+			'show_reply'     => __( 'Show reply', 'dh-google-reviews' ),
+			'show_date'      => __( 'Show date', 'dh-google-reviews' ),
+			'show_photo'     => __( 'Show reviewer photo', 'dh-google-reviews' ),
+			'show_stars'     => __( 'Show star rating', 'dh-google-reviews' ),
+			'show_aggregate' => __( 'Show aggregate score', 'dh-google-reviews' ),
+			'show_dots'      => __( 'Show slider dots', 'dh-google-reviews' ),
+		);
+
+		$branding_toggles = array(
+			'show_google_icon'        => __( 'Show Google icon', 'dh-google-reviews' ),
+			'show_google_attribution' => __( 'Show Google attribution', 'dh-google-reviews' ),
+			'show_cta'                => __( 'Show call-to-action button', 'dh-google-reviews' ),
+		);
+		?>
+		<div class="wrap dh-reviews-settings-wrap">
+			<h1><?php esc_html_e( 'Shortcode Generator', 'dh-google-reviews' ); ?></h1>
+			<p><?php esc_html_e( 'Adjust the controls below to build a [dh_reviews] shortcode. Only attributes that differ from the defaults are included in the output — [dh_reviews] with no attributes uses all defaults.', 'dh-google-reviews' ); ?></p>
+
+			<!-- ── Layout ──────────────────────────────────────────────────────── -->
+			<h2><?php esc_html_e( 'Layout', 'dh-google-reviews' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-layout"><?php esc_html_e( 'Layout', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<select id="dh-gen-layout" data-attr="layout">
+							<option value="grid"><?php esc_html_e( 'Grid', 'dh-google-reviews' ); ?></option>
+							<option value="slider"><?php esc_html_e( 'Slider', 'dh-google-reviews' ); ?></option>
+							<option value="list"><?php esc_html_e( 'List', 'dh-google-reviews' ); ?></option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-count"><?php esc_html_e( 'Count', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<input type="number" id="dh-gen-count" data-attr="count" value="5" min="1" max="50" class="small-text">
+						<p class="description"><?php esc_html_e( 'Number of reviews to display (1–50).', 'dh-google-reviews' ); ?></p>
+					</td>
+				</tr>
+				<tr id="dh-gen-row-columns">
+					<th scope="row">
+						<label for="dh-gen-columns"><?php esc_html_e( 'Columns', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<input type="number" id="dh-gen-columns" data-attr="columns" value="3" min="1" max="4" class="small-text">
+						<p class="description"><?php esc_html_e( 'Grid columns (1–4). Grid layout only.', 'dh-google-reviews' ); ?></p>
+					</td>
+				</tr>
+				<tr id="dh-gen-row-visible_cards" style="display:none;">
+					<th scope="row">
+						<label for="dh-gen-visible_cards"><?php esc_html_e( 'Visible cards', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<input type="number" id="dh-gen-visible_cards" data-attr="visible_cards" value="3" min="1" max="4" class="small-text">
+						<p class="description"><?php esc_html_e( 'Cards visible at once in the slider (1–4).', 'dh-google-reviews' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<!-- ── Filtering ────────────────────────────────────────────────────── -->
+			<h2><?php esc_html_e( 'Filtering', 'dh-google-reviews' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-min_rating"><?php esc_html_e( 'Minimum rating', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<select id="dh-gen-min_rating" data-attr="min_rating">
+							<?php for ( $i = 1; $i <= 5; $i++ ) : ?>
+								<option value="<?php echo esc_attr( $i ); ?>">
+									<?php
+									/* translators: %d: number of stars */
+									echo esc_html( sprintf( _n( '%d star', '%d stars', $i, 'dh-google-reviews' ), $i ) );
+									?>
+								</option>
+							<?php endfor; ?>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-orderby"><?php esc_html_e( 'Order by', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<select id="dh-gen-orderby" data-attr="orderby">
+							<option value="date"><?php esc_html_e( 'Date', 'dh-google-reviews' ); ?></option>
+							<option value="rating"><?php esc_html_e( 'Rating', 'dh-google-reviews' ); ?></option>
+							<option value="random"><?php esc_html_e( 'Random', 'dh-google-reviews' ); ?></option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-order"><?php esc_html_e( 'Order', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<select id="dh-gen-order" data-attr="order">
+							<option value="DESC"><?php esc_html_e( 'Descending', 'dh-google-reviews' ); ?></option>
+							<option value="ASC"><?php esc_html_e( 'Ascending', 'dh-google-reviews' ); ?></option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-excerpt_length"><?php esc_html_e( 'Excerpt length', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<input type="number" id="dh-gen-excerpt_length" data-attr="excerpt_length" value="150" min="0" class="small-text">
+						<p class="description"><?php esc_html_e( 'Characters before truncation. 0 = no limit.', 'dh-google-reviews' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-date_format"><?php esc_html_e( 'Date format', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<select id="dh-gen-date_format" data-attr="date_format">
+							<option value="relative"><?php esc_html_e( 'Relative (e.g. "3 months ago")', 'dh-google-reviews' ); ?></option>
+							<option value="absolute"><?php esc_html_e( 'Absolute (e.g. "12 January 2025")', 'dh-google-reviews' ); ?></option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-location"><?php esc_html_e( 'Location', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<select id="dh-gen-location" data-attr="location">
+							<option value=""><?php esc_html_e( 'All locations', 'dh-google-reviews' ); ?></option>
+							<?php foreach ( $terms as $term ) : ?>
+								<option value="<?php echo esc_attr( $term->slug ); ?>">
+									<?php echo esc_html( $term->name ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+				</tr>
+			</table>
+
+			<!-- ── Display Options ──────────────────────────────────────────────── -->
+			<h2><?php esc_html_e( 'Display Options', 'dh-google-reviews' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<?php foreach ( $display_toggles as $attr => $label ) : ?>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-<?php echo esc_attr( $attr ); ?>"><?php echo esc_html( $label ); ?></label>
+					</th>
+					<td>
+						<label class="dh-reviews-toggle">
+							<input type="checkbox"
+								id="dh-gen-<?php echo esc_attr( $attr ); ?>"
+								data-attr="<?php echo esc_attr( $attr ); ?>"
+								checked>
+							<span class="dh-reviews-toggle__slider"></span>
+						</label>
+					</td>
+				</tr>
+				<?php endforeach; ?>
+			</table>
+
+			<!-- ── Google Branding ──────────────────────────────────────────────── -->
+			<h2><?php esc_html_e( 'Google Branding', 'dh-google-reviews' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<?php foreach ( $branding_toggles as $attr => $label ) : ?>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-<?php echo esc_attr( $attr ); ?>"><?php echo esc_html( $label ); ?></label>
+					</th>
+					<td>
+						<label class="dh-reviews-toggle">
+							<input type="checkbox"
+								id="dh-gen-<?php echo esc_attr( $attr ); ?>"
+								data-attr="<?php echo esc_attr( $attr ); ?>"
+								checked>
+							<span class="dh-reviews-toggle__slider"></span>
+						</label>
+					</td>
+				</tr>
+				<?php endforeach; ?>
+				<tr id="dh-gen-row-cta_text">
+					<th scope="row">
+						<label for="dh-gen-cta_text"><?php esc_html_e( 'CTA button text', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<input type="text" id="dh-gen-cta_text" data-attr="cta_text"
+							value="Review Us On Google" class="regular-text">
+					</td>
+				</tr>
+			</table>
+
+			<!-- ── Schema ───────────────────────────────────────────────────────── -->
+			<h2><?php esc_html_e( 'Schema', 'dh-google-reviews' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-schema"><?php esc_html_e( 'Output JSON-LD schema', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<label class="dh-reviews-toggle">
+							<input type="checkbox" id="dh-gen-schema" data-attr="schema" checked>
+							<span class="dh-reviews-toggle__slider"></span>
+						</label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="dh-gen-class"><?php esc_html_e( 'Extra CSS class', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<input type="text" id="dh-gen-class" data-attr="class" value=""
+							class="regular-text" placeholder="my-custom-class">
+						<p class="description"><?php esc_html_e( 'Additional class added to the review wrapper element.', 'dh-google-reviews' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<!-- ── Generated Shortcode ──────────────────────────────────────────── -->
+			<div class="dh-reviews-generator-output">
+				<h2><?php esc_html_e( 'Generated Shortcode', 'dh-google-reviews' ); ?></h2>
+				<div class="dh-reviews-generator-copy-row">
+					<input type="text" id="dh-gen-output" class="large-text code" readonly value="[dh_reviews]">
+					<button type="button" id="dh-gen-copy" class="button button-primary">
+						<?php esc_html_e( 'Copy Shortcode', 'dh-google-reviews' ); ?>
+					</button>
+					<span id="dh-gen-copied" class="dh-reviews-generator-copied" style="display:none;">
+						<?php esc_html_e( 'Copied!', 'dh-google-reviews' ); ?>
+					</span>
+				</div>
+			</div>
+		</div><!-- .wrap -->
+
+		<script>
+		( function () {
+			'use strict';
+
+			var DEFAULTS = {
+				layout:                 'grid',
+				count:                  '5',
+				columns:                '3',
+				visible_cards:          '3',
+				min_rating:             '1',
+				orderby:                'date',
+				order:                  'DESC',
+				excerpt_length:         '150',
+				date_format:            'relative',
+				location:               '',
+				show_reply:             true,
+				show_date:              true,
+				show_photo:             true,
+				show_stars:             true,
+				show_aggregate:         true,
+				show_dots:              true,
+				show_google_icon:       true,
+				show_google_attribution: true,
+				show_cta:               true,
+				cta_text:               'Review Us On Google',
+				schema:                 true,
+				'class':                ''
+			};
+
+			function getEl( attr ) {
+				return document.getElementById( 'dh-gen-' + attr );
+			}
+
+			function val( attr ) {
+				var el = getEl( attr );
+				return el ? el.value : '';
+			}
+
+			function bool( attr ) {
+				var el = getEl( attr );
+				return el ? el.checked : true;
+			}
+
+			function maybe( parts, attr, current, def ) {
+				if ( String( current ).trim() !== String( def ) ) {
+					parts.push( attr + '="' + current + '"' );
+				}
+			}
+
+			function maybeBool( parts, attr, current, def ) {
+				if ( current !== def ) {
+					parts.push( attr + '="' + ( current ? 'true' : 'false' ) + '"' );
+				}
+			}
+
+			function buildShortcode() {
+				var layout = val( 'layout' );
+				var parts  = [];
+
+				maybe( parts, 'layout',         layout,                    DEFAULTS.layout );
+				maybe( parts, 'count',          val( 'count' ),            DEFAULTS.count );
+
+				if ( layout === 'grid' ) {
+					maybe( parts, 'columns', val( 'columns' ), DEFAULTS.columns );
+				}
+				if ( layout === 'slider' ) {
+					maybe( parts, 'visible_cards', val( 'visible_cards' ), DEFAULTS.visible_cards );
+				}
+
+				maybe( parts, 'min_rating',     val( 'min_rating' ),      DEFAULTS.min_rating );
+				maybe( parts, 'orderby',        val( 'orderby' ),         DEFAULTS.orderby );
+				maybe( parts, 'order',          val( 'order' ),           DEFAULTS.order );
+				maybe( parts, 'excerpt_length', val( 'excerpt_length' ),  DEFAULTS.excerpt_length );
+				maybe( parts, 'date_format',    val( 'date_format' ),     DEFAULTS.date_format );
+				maybe( parts, 'location',       val( 'location' ),        DEFAULTS.location );
+
+				maybeBool( parts, 'show_reply',             bool( 'show_reply' ),             DEFAULTS.show_reply );
+				maybeBool( parts, 'show_date',              bool( 'show_date' ),              DEFAULTS.show_date );
+				maybeBool( parts, 'show_photo',             bool( 'show_photo' ),             DEFAULTS.show_photo );
+				maybeBool( parts, 'show_stars',             bool( 'show_stars' ),             DEFAULTS.show_stars );
+				maybeBool( parts, 'show_aggregate',         bool( 'show_aggregate' ),         DEFAULTS.show_aggregate );
+				maybeBool( parts, 'show_dots',              bool( 'show_dots' ),              DEFAULTS.show_dots );
+				maybeBool( parts, 'show_google_icon',       bool( 'show_google_icon' ),       DEFAULTS.show_google_icon );
+				maybeBool( parts, 'show_google_attribution', bool( 'show_google_attribution' ), DEFAULTS.show_google_attribution );
+				maybeBool( parts, 'show_cta',               bool( 'show_cta' ),               DEFAULTS.show_cta );
+				maybe( parts, 'cta_text', val( 'cta_text' ), DEFAULTS.cta_text );
+				maybeBool( parts, 'schema', bool( 'schema' ), DEFAULTS.schema );
+				maybe( parts, 'class', val( 'class' ), DEFAULTS['class'] );
+
+				getEl( 'output' ).value =
+					'[dh_reviews' + ( parts.length ? ' ' + parts.join( ' ' ) : '' ) + ']';
+			}
+
+			function updateConditional() {
+				var layout   = val( 'layout' );
+				var colRow   = document.getElementById( 'dh-gen-row-columns' );
+				var slideRow = document.getElementById( 'dh-gen-row-visible_cards' );
+				var ctaRow   = document.getElementById( 'dh-gen-row-cta_text' );
+
+				if ( colRow )   { colRow.style.display   = ( layout === 'grid'   ) ? '' : 'none'; }
+				if ( slideRow ) { slideRow.style.display  = ( layout === 'slider' ) ? '' : 'none'; }
+				if ( ctaRow ) {
+					var showCta = getEl( 'show_cta' );
+					ctaRow.style.display = ( showCta && showCta.checked ) ? '' : 'none';
+				}
+			}
+
+			// Bind all controls.
+			document.querySelectorAll( '[data-attr]' ).forEach( function ( el ) {
+				el.addEventListener( 'change', function () { updateConditional(); buildShortcode(); } );
+				el.addEventListener( 'input',  buildShortcode );
+			} );
+
+			// Copy button.
+			document.getElementById( 'dh-gen-copy' ).addEventListener( 'click', function () {
+				var output  = getEl( 'output' );
+				var confirm = document.getElementById( 'dh-gen-copied' );
+
+				output.select();
+				try { document.execCommand( 'copy' ); } catch ( e ) {}
+				if ( navigator.clipboard && navigator.clipboard.writeText ) {
+					navigator.clipboard.writeText( output.value );
+				}
+
+				confirm.style.display = 'inline';
+				setTimeout( function () { confirm.style.display = 'none'; }, 2000 );
+			} );
+
+			// Initialise.
+			updateConditional();
+			buildShortcode();
+		}() );
+		</script>
+		<?php
+	}
 
 	/**
 	 * Render the main settings page.

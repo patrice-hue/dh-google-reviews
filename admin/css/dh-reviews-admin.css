@@ -338,3 +338,42 @@
 .dh-reviews-toggle input:checked + .dh-reviews-toggle__slider::after {
 	transform: translateX(18px);
 }
+
+/* =============================================================================
+   Shortcode Generator page
+   ============================================================================= */
+
+.dh-reviews-generator-output {
+	margin-top: 28px;
+	padding: 20px 24px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.dh-reviews-generator-output h2 {
+	margin-top: 0;
+	padding-bottom: 0.4em;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.dh-reviews-generator-copy-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.dh-reviews-generator-copy-row input[type="text"] {
+	flex: 1;
+	min-width: 200px;
+	font-family: Consolas, 'Courier New', monospace;
+	font-size: 13px;
+	background: #fff;
+}
+
+.dh-reviews-generator-copied {
+	color: #065f46;
+	font-weight: 600;
+	font-size: 13px;
+}
