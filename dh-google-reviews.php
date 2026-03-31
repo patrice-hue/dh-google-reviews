@@ -93,13 +93,18 @@ function dh_reviews_init(): void {
 add_action( 'init', __NAMESPACE__ . '\\dh_reviews_init' );
 
 /**
- * Boot admin only classes.
+ * Boot admin-only classes on init so that add_action('admin_menu', ...)
+ * calls inside their constructors are registered before admin_menu fires.
+ * (admin_init runs after admin_menu, so instantiating there is too late.)
  *
  * @return void
  */
 function dh_reviews_admin_init(): void {
+	if ( ! is_admin() ) {
+		return;
+	}
 	new Admin();
 	new Import();
 	new Export();
 }
-add_action( 'admin_init', __NAMESPACE__ . '\\dh_reviews_admin_init' );
+add_action( 'init', __NAMESPACE__ . '\\dh_reviews_admin_init' );
