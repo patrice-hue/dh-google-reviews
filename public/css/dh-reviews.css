@@ -266,9 +266,9 @@
 	flex-shrink: 0;
 }
 
-/* Slider positions aggregate to the left */
-.dh-reviews--slider .dh-reviews-aggregate {
-	margin-bottom: calc(var(--dh-reviews-gap) * 0.75);
+/* In sidebar layout the flex gap handles spacing; remove aggregate bottom margin. */
+.dh-reviews-slider-layout__sidebar .dh-reviews-aggregate {
+	margin-bottom: 0;
 }
 
 /* =============================================================================
@@ -348,9 +348,8 @@
 	font-weight: 600;
 	color: var(--dh-reviews-color-name);
 	line-height: 1.3;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	/* Allow names to wrap rather than truncating with ellipsis */
+	word-break: break-word;
 }
 
 .dh-review-card__date {
@@ -390,6 +389,7 @@
 	font-size: var(--dh-reviews-font-size-body);
 	color: var(--dh-reviews-color-body);
 	line-height: 1.6;
+	flex: 1;
 }
 
 .dh-review-card__body p {
@@ -513,8 +513,22 @@
 	outline-offset: 2px;
 }
 
-/* Add horizontal padding to the slider so arrows don't overlap cards */
-.dh-reviews--slider {
+/* Sidebar layout: aggregate panel on the left, slider on the right */
+.dh-reviews-slider-layout {
+	display: flex;
+	gap: calc(var(--dh-reviews-gap) * 2);
+	align-items: flex-start;
+}
+
+.dh-reviews-slider-layout__sidebar {
+	width: 220px;
+	flex-shrink: 0;
+}
+
+/* Add horizontal padding to the slider main so arrows don't overlap cards */
+.dh-reviews-slider-main {
+	flex: 1;
+	min-width: 0;
 	padding-left: calc(var(--dh-reviews-arrow-size) * 0.75);
 	padding-right: calc(var(--dh-reviews-arrow-size) * 0.75);
 }
@@ -619,8 +633,17 @@
 		width: calc((100% - var(--dh-reviews-gap)) / 2);
 	}
 
+	/* Sidebar stacks vertically on tablet */
+	.dh-reviews-slider-layout {
+		flex-direction: column;
+	}
+
+	.dh-reviews-slider-layout__sidebar {
+		width: 100%;
+	}
+
 	/* Slightly smaller arrow offset so they don't clip on tablet */
-	.dh-reviews--slider {
+	.dh-reviews-slider-main {
 		padding-left: calc(var(--dh-reviews-arrow-size) * 0.5);
 		padding-right: calc(var(--dh-reviews-arrow-size) * 0.5);
 	}
@@ -655,7 +678,7 @@
 		display: none;
 	}
 
-	.dh-reviews--slider {
+	.dh-reviews-slider-main {
 		padding-left: 0;
 		padding-right: 0;
 	}

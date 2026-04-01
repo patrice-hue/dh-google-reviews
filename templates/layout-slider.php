@@ -27,6 +27,9 @@ $cta_url   = ! empty( $settings['cta_url_override'] ) ? $settings['cta_url_overr
 if ( ! $cta_url && $place_id ) {
 	$cta_url = 'https://search.google.com/local/writereview?placeid=' . rawurlencode( $place_id );
 }
+if ( ! $cta_url ) {
+	$cta_url = '#';
+}
 
 $total_cards = count( $reviews );
 $visible     = max( 1, (int) $atts['visible_cards'] );
@@ -41,9 +44,15 @@ if ( ! empty( $atts['class'] ) ) {
 	data-columns="<?php echo esc_attr( $atts['columns'] ); ?>"
 	data-visible="<?php echo esc_attr( $visible ); ?>">
 
-	<?php if ( $atts['show_aggregate'] ) : ?>
-		<?php echo $render->render_aggregate( $atts ); ?>
-	<?php endif; ?>
+	<div class="dh-reviews-slider-layout">
+
+		<?php if ( $atts['show_aggregate'] ) : ?>
+			<div class="dh-reviews-slider-layout__sidebar">
+				<?php echo $render->render_aggregate( $atts ); ?>
+			</div>
+		<?php endif; ?>
+
+		<div class="dh-reviews-slider-main">
 
 	<div class="dh-reviews-slider">
 
@@ -84,7 +93,11 @@ if ( ! empty( $atts['class'] ) ) {
 		</div>
 	<?php endif; ?>
 
-	<?php if ( $atts['show_cta'] && $cta_url ) : ?>
+		</div><!-- .dh-reviews-slider-main -->
+
+	</div><!-- .dh-reviews-slider-layout -->
+
+	<?php if ( $atts['show_cta'] ) : ?>
 		<div class="dh-reviews-cta">
 			<a class="dh-reviews-cta__button"
 				href="<?php echo esc_url( $cta_url ); ?>"

@@ -93,7 +93,7 @@
 	function initReadMore() {
 		document.querySelectorAll( '.dh-review-card__read-more' ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
-				var body = btn.closest( '.dh-review-card__body' );
+				var body = btn.closest( '.dh-review-card__body, .dh-review-card__reply' );
 				if ( ! body ) {
 					return;
 				}

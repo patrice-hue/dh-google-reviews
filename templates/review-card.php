@@ -29,6 +29,10 @@ $reply_date     = (string) get_post_meta( $review->ID, '_dh_reply_date', true );
 $review_date    = $review->post_date;
 $review_body    = get_the_content( null, false, $review );
 
+// Debug: expose raw date values in source so the relative-date calculation can be verified.
+$_dbg_ts   = (int) strtotime( $review_date );
+$_dbg_diff = (int) floor( ( current_time( 'timestamp' ) - $_dbg_ts ) / DAY_IN_SECONDS );
+
 $formatted_date = $render->format_date( $review_date, $atts['date_format'] );
 $datetime_attr  = gmdate( 'Y-m-d', (int) strtotime( $review_date ) );
 
@@ -46,8 +50,23 @@ if ( $needs_truncate ) {
 	}
 	$excerpt .= '...';
 }
+
+// Owner reply truncation at 100 characters.
+$reply_plain       = $owner_reply ? wp_strip_all_tags( $owner_reply ) : '';
+$reply_needs_trunc = $owner_reply && mb_strlen( $reply_plain ) > 100;
+$reply_excerpt     = '';
+
+if ( $reply_needs_trunc ) {
+	$reply_excerpt = mb_substr( $reply_plain, 0, 100 );
+	$last_space    = mb_strrpos( $reply_excerpt, ' ' );
+	if ( false !== $last_space ) {
+		$reply_excerpt = mb_substr( $reply_excerpt, 0, $last_space );
+	}
+	$reply_excerpt .= '...';
+}
 ?>
 <div class="dh-review-card">
+<?php echo '<!-- dh-debug post_date="' . esc_attr( $review_date ) . '" ts="' . $_dbg_ts . '" diff_days="' . $_dbg_diff . '" -->'; ?>
 
 	<div class="dh-review-card__header">
 
@@ -96,7 +115,13 @@ if ( $needs_truncate ) {
 					</time>
 				<?php endif; ?>
 			</div>
-			<p><?php echo wp_kses_post( $owner_reply ); ?></p>
+			<?php if ( $reply_needs_trunc ) : ?>
+				<p class="dh-review-card__excerpt"><?php echo esc_html( $reply_excerpt ); ?></p>
+				<p class="dh-review-card__full" hidden><?php echo wp_kses_post( $owner_reply ); ?></p>
+				<button class="dh-review-card__read-more" type="button" aria-expanded="false">Read more</button>
+			<?php else : ?>
+				<p><?php echo wp_kses_post( $owner_reply ); ?></p>
+			<?php endif; ?>
 		</div>
 	<?php endif; ?>
 
