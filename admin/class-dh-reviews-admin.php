@@ -213,6 +213,23 @@ class Admin {
 			'dh-reviews-settings'
 		);
 
+		add_settings_field(
+			'review_source',
+			__( 'Review Source', 'dh-google-reviews' ),
+			array( $this, 'render_field_select' ),
+			'dh-reviews-settings',
+			'dh_reviews_api',
+			array(
+				'field'   => 'review_source',
+				'options' => array(
+					'gbp'    => __( 'Google Business Profile (GBP) – recommended', 'dh-google-reviews' ),
+					'places' => __( 'Google Places API – limited to 5 reviews', 'dh-google-reviews' ),
+					'manual' => __( 'Manual only – no API sync', 'dh-google-reviews' ),
+				),
+				'default' => 'gbp',
+			)
+		);
+
 		if ( ! defined( 'DH_REVIEWS_CLIENT_ID' ) ) {
 			add_settings_field(
 				'google_client_id',
@@ -266,6 +283,27 @@ class Admin {
 			'dh-reviews-settings',
 			'dh_reviews_api',
 			array( 'field' => 'google_location_id' )
+		);
+
+		add_settings_field(
+			'places_api_key',
+			__( 'Places API Key', 'dh-google-reviews' ),
+			array( $this, 'render_field_places_api_key' ),
+			'dh-reviews-settings',
+			'dh_reviews_api'
+		);
+
+		add_settings_field(
+			'places_place_id',
+			__( 'Place ID (Places API)', 'dh-google-reviews' ),
+			array( $this, 'render_field_text' ),
+			'dh-reviews-settings',
+			'dh_reviews_api',
+			array(
+				'field'       => 'places_place_id',
+				'class'       => 'regular-text',
+				'description' => __( 'The Google Place ID for your business. Find it at developers.google.com/maps/documentation/places/web-service/place-id.', 'dh-google-reviews' ),
+			)
 		);
 
 		// ---- Sync Configuration ----
@@ -1238,6 +1276,12 @@ class Admin {
 		$out = array();
 
 		// --- API Connection ---
+		$out['review_source'] = in_array(
+			$input['review_source'] ?? '',
+			array( 'gbp', 'places', 'manual' ),
+			true
+		) ? $input['review_source'] : 'gbp';
+
 		if ( ! defined( 'DH_REVIEWS_CLIENT_ID' ) ) {
 			$out['google_client_id'] = sanitize_text_field( $input['google_client_id'] ?? '' );
 		}
@@ -1251,6 +1295,20 @@ class Admin {
 		}
 		$out['google_account_id']  = sanitize_text_field( $input['google_account_id'] ?? '' );
 		$out['google_location_id'] = sanitize_text_field( $input['google_location_id'] ?? '' );
+
+		// Preserve existing Places API key when the field is submitted blank.
+		$existing         = $existing ?? get_option( self::OPTION_NAME, array() );
+		$new_places_key   = $input['places_api_key'] ?? '';
+		$out['places_api_key'] = ( '' !== $new_places_key )
+			? sanitize_text_field( $new_places_key )
+			: ( $existing['places_api_key'] ?? '' );
+
+		$out['places_place_id'] = sanitize_text_field( $input['places_place_id'] ?? '' );
+
+		// When source is Places, sync the Place ID to google_place_id so CTA links work.
+		if ( 'places' === $out['review_source'] && '' !== $out['places_place_id'] ) {
+			$out['google_place_id'] = $out['places_place_id'];
+		}
 
 		// Preserve OAuth tokens (not submitted via settings form).
 		$existing                      = get_option( self::OPTION_NAME, array() );
@@ -1402,6 +1460,41 @@ class Admin {
 				</ol>
 			</div>
 		</details>
+		<script>
+		( function () {
+			// IDs that identify each settings <tr> row.
+			// The sentinel hidden inputs allow targeting rows that have no native input id.
+			var GBP_IDS     = [ 'google_client_id', 'google_client_secret', 'dh-sentinel-oauth-connect', 'dh-sentinel-account-selector', 'dh-sentinel-location-selector' ];
+			var PLACES_IDS  = [ 'places_api_key', 'places_place_id' ];
+
+			function getRow( id ) {
+				var el = document.getElementById( id );
+				return el ? el.closest( 'tr' ) : null;
+			}
+
+			function applyVisibility( source ) {
+				GBP_IDS.forEach( function ( id ) {
+					var row = getRow( id );
+					if ( row ) { row.style.display = ( 'gbp' === source ) ? '' : 'none'; }
+				} );
+				PLACES_IDS.forEach( function ( id ) {
+					var row = getRow( id );
+					if ( row ) { row.style.display = ( 'places' === source ) ? '' : 'none'; }
+				} );
+			}
+
+			var sel = document.getElementById( 'review_source' );
+			if ( ! sel ) { return; }
+
+			// Apply on page load.
+			applyVisibility( sel.value );
+
+			// Apply on change.
+			sel.addEventListener( 'change', function () {
+				applyVisibility( sel.value );
+			} );
+		}() );
+		</script>
 		<?php
 	}
 
@@ -1657,6 +1750,7 @@ class Admin {
 	 * @return void
 	 */
 	public function render_field_oauth_connect(): void {
+		echo '<input type="hidden" id="dh-sentinel-oauth-connect" />';
 		$settings  = get_option( self::OPTION_NAME, array() );
 		$email     = $settings['oauth_connected_email'] ?? '';
 		$token     = $settings['oauth_refresh_token'] ?? '';
@@ -1734,6 +1828,7 @@ class Admin {
 	 * @return void
 	 */
 	public function render_field_account_selector( array $args ): void {
+		echo '<input type="hidden" id="dh-sentinel-account-selector" />';
 		$settings  = get_option( self::OPTION_NAME, array() );
 		$field     = $args['field'];
 		$current   = $settings[ $field ] ?? '';
@@ -1800,6 +1895,7 @@ class Admin {
 	 * @return void
 	 */
 	public function render_field_location_selector( array $args ): void {
+		echo '<input type="hidden" id="dh-sentinel-location-selector" />';
 		$settings   = get_option( self::OPTION_NAME, array() );
 		$field      = $args['field'];
 		$current    = $settings[ $field ] ?? '';
@@ -1863,14 +1959,60 @@ class Admin {
 	}
 
 	/**
+	 * Render the Places API Key password field with a setup help accordion.
+	 *
+	 * @return void
+	 */
+	public function render_field_places_api_key(): void {
+		$settings = get_option( self::OPTION_NAME, array() );
+		$value    = ! empty( $settings['places_api_key'] ) ? str_repeat( '•', 20 ) : '';
+		?>
+		<input type="password"
+			id="places_api_key"
+			name="<?php echo esc_attr( self::OPTION_NAME ); ?>[places_api_key]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="regular-text"
+			autocomplete="off"
+			placeholder="<?php esc_attr_e( 'Enter your Places API key', 'dh-google-reviews' ); ?>"
+		/>
+		<p class="description"><?php esc_html_e( 'Leave blank to keep the existing key. The field shows a placeholder when a key is already saved.', 'dh-google-reviews' ); ?></p>
+
+		<details class="dh-reviews-help-panel" style="margin-top:8px;">
+			<summary><?php esc_html_e( 'How to create a Places API key', 'dh-google-reviews' ); ?></summary>
+			<div class="dh-reviews-help-panel__body">
+				<ol>
+					<li><?php
+						printf(
+							/* translators: %s: URL */
+							esc_html__( 'Go to Google Cloud Console: %s', 'dh-google-reviews' ),
+							'<a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer">https://console.cloud.google.com/</a>'
+						);
+					?></li>
+					<li><?php esc_html_e( 'Enable the Places API under APIs & Services > Library.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Go to APIs & Services > Credentials > Create Credentials > API key.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Restrict the key to the Places API and your server IP or HTTP referrer.', 'dh-google-reviews' ); ?></li>
+					<li><?php esc_html_e( 'Copy the key and paste it above.', 'dh-google-reviews' ); ?></li>
+				</ol>
+				<p><strong><?php esc_html_e( 'Note:', 'dh-google-reviews' ); ?></strong> <?php esc_html_e( 'The Places API returns a maximum of 5 reviews (the most helpful according to Google). For full review access use the GBP source instead.', 'dh-google-reviews' ); ?></p>
+			</div>
+		</details>
+		<?php
+	}
+
+	/**
 	 * Render the Sync Now button with AJAX handler.
 	 *
 	 * @return void
 	 */
 	public function render_field_sync_now(): void {
-		$settings  = get_option( self::OPTION_NAME, array() );
-		$connected = ! empty( $settings['oauth_refresh_token'] ?? '' )
+		$settings      = get_option( self::OPTION_NAME, array() );
+		$review_source = $settings['review_source'] ?? 'gbp';
+		$gbp_ready     = ! empty( $settings['oauth_refresh_token'] ?? '' )
 			&& ! empty( $settings['google_location_id'] ?? '' );
+		$places_ready  = ! empty( $settings['places_api_key'] ?? '' )
+			&& ! empty( $settings['places_place_id'] ?? '' );
+		$connected     = ( 'gbp' === $review_source && $gbp_ready )
+			|| ( 'places' === $review_source && $places_ready );
 
 		$nonce = wp_create_nonce( 'dh_reviews_manual_sync' );
 

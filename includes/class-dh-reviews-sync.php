@@ -173,6 +173,18 @@ class Sync {
 		$api      = new API();
 		$settings = get_option( 'dh_reviews_settings', array() );
 
+		$review_source = $settings['review_source'] ?? 'gbp';
+
+		if ( 'manual' === $review_source ) {
+			$result['errors'][] = __( 'Review source is set to Manual. No sync performed.', 'dh-google-reviews' );
+			$this->log_sync_result( $result );
+			return $result;
+		}
+
+		if ( 'places' === $review_source ) {
+			return $this->run_places_sync();
+		}
+
 		if ( ! $api->is_connected() ) {
 			$result['errors'][] = __( 'API not connected. Sync aborted.', 'dh-google-reviews' );
 			$this->log_sync_result( $result );
@@ -495,6 +507,190 @@ class Sync {
 			'owner_reply'    => $raw['reviewReply']['comment'] ?? '',
 			'reply_time'     => $raw['reviewReply']['updateTime'] ?? '',
 		);
+	}
+
+	// -------------------------------------------------------------------------
+	// Places API sync
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Sync reviews from the Google Places API.
+	 *
+	 * Fetches up to 5 reviews from the Places Details endpoint, deduplicates
+	 * against existing CPT posts by md5(author_name + time) hash, and creates
+	 * new posts for reviews that haven't been imported yet.  Unlike the GBP
+	 * sync, Places reviews are never trashed when absent because the API
+	 * returns only the "most helpful" 5 reviews and the set changes over time.
+	 *
+	 * @return array Sync result with keys: created, updated, trashed, errors.
+	 */
+	private function run_places_sync(): array {
+		$result = array(
+			'timestamp' => time(),
+			'created'   => 0,
+			'updated'   => 0,
+			'trashed'   => 0,
+			'errors'    => array(),
+		);
+
+		$settings  = get_option( 'dh_reviews_settings', array() );
+		$api_key   = $settings['places_api_key'] ?? '';
+		$place_id  = $settings['places_place_id'] ?? '';
+
+		if ( '' === $api_key || '' === $place_id ) {
+			$result['errors'][] = __( 'Places API key or Place ID is not configured. Sync aborted.', 'dh-google-reviews' );
+			$this->log_sync_result( $result );
+			return $result;
+		}
+
+		$api  = new API();
+		$data = $api->fetch_places_reviews( $api_key, $place_id );
+
+		if ( false === $data ) {
+			$result['errors'][] = __( 'Failed to fetch reviews from Google Places API.', 'dh-google-reviews' );
+			$this->log_sync_result( $result );
+			return $result;
+		}
+
+		$raw_reviews = $data['result']['reviews'] ?? array();
+
+		if ( empty( $raw_reviews ) ) {
+			$this->log_sync_result( $result );
+			return $result;
+		}
+
+		$min_rating      = (int) apply_filters( 'dh_reviews_min_rating_publish', (int) ( $settings['min_rating_publish'] ?? 1 ) );
+		$below_threshold = $settings['below_threshold_action'] ?? 'draft';
+
+		foreach ( $raw_reviews as $raw ) {
+			$review = $this->normalize_places_review( $raw );
+
+			if ( '' === $review['places_hash'] ) {
+				continue;
+			}
+
+			$existing_post_id = $this->find_review_by_places_hash( $review['places_hash'] );
+
+			if ( false !== $existing_post_id ) {
+				// Already imported — skip (Places has no updateTime).
+				continue;
+			}
+
+			$status = ( $review['star_rating'] >= $min_rating ) ? 'publish' : $below_threshold;
+			if ( 'skip' === $status ) {
+				continue;
+			}
+
+			$review['post_status'] = $status;
+
+			$post_id = $this->create_places_review( $review );
+			if ( $post_id ) {
+				$result['created']++;
+			} else {
+				$result['errors'][] = sprintf(
+					/* translators: %s: Places review hash */
+					__( 'Failed to create Places review (hash %s).', 'dh-google-reviews' ),
+					$review['places_hash']
+				);
+			}
+		}
+
+		$this->update_aggregate();
+		$this->log_sync_result( $result );
+		do_action( 'dh_reviews_after_sync', $result );
+
+		return $result;
+	}
+
+	/**
+	 * Normalise a raw Places API review array to internal field names.
+	 *
+	 * @param array $raw Raw review data from the Places Details API response.
+	 * @return array Normalised review data.
+	 */
+	private function normalize_places_review( array $raw ): array {
+		$author = $raw['author_name'] ?? '';
+		$time   = (int) ( $raw['time'] ?? 0 );
+
+		return array(
+			'places_hash'    => ( '' !== $author || $time > 0 ) ? md5( $author . $time ) : '',
+			'gbp_review_id'  => '',
+			'reviewer_name'  => $author,
+			'reviewer_photo' => $raw['profile_photo_url'] ?? '',
+			'star_rating'    => (int) ( $raw['rating'] ?? 0 ),
+			'review_text'    => $raw['text'] ?? '',
+			'create_time'    => $time > 0 ? gmdate( 'Y-m-d\TH:i:s\Z', $time ) : '',
+			'update_time'    => $time > 0 ? gmdate( 'Y-m-d\TH:i:s\Z', $time ) : '',
+			'owner_reply'    => '',
+			'reply_time'     => '',
+		);
+	}
+
+	/**
+	 * Find an existing review CPT post by its Places deduplication hash.
+	 *
+	 * @param string $hash md5(author_name + unix_time) hash.
+	 * @return int|false Post ID if found, false otherwise.
+	 */
+	private function find_review_by_places_hash( string $hash ) {
+		$query = new \WP_Query( array(
+			'post_type'      => CPT::POST_TYPE,
+			'post_status'    => 'any',
+			'posts_per_page' => 1,
+			'no_found_rows'  => true,
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				array(
+					'key'   => '_dh_places_hash',
+					'value' => $hash,
+				),
+			),
+		) );
+
+		if ( empty( $query->posts ) ) {
+			return false;
+		}
+
+		return (int) $query->posts[0];
+	}
+
+	/**
+	 * Create a new review CPT post from a normalised Places API review.
+	 *
+	 * @param array $review Normalised review data (output of normalize_places_review() + post_status).
+	 * @return int|false New post ID on success, false on failure.
+	 */
+	private function create_places_review( array $review ) {
+		$review = apply_filters( 'dh_reviews_sync_review', $review );
+
+		$date = ! empty( $review['create_time'] )
+			? gmdate( 'Y-m-d H:i:s', (int) strtotime( $review['create_time'] ) )
+			: current_time( 'mysql' );
+
+		$post_id = wp_insert_post( array(
+			'post_type'     => CPT::POST_TYPE,
+			'post_status'   => $review['post_status'] ?? 'publish',
+			'post_title'    => $review['reviewer_name'] ?: __( 'Anonymous', 'dh-google-reviews' ),
+			'post_content'  => $review['review_text'],
+			'post_date'     => $date,
+			'post_date_gmt' => $date,
+		), true );
+
+		if ( is_wp_error( $post_id ) ) {
+			return false;
+		}
+
+		update_post_meta( $post_id, '_dh_reviewer_name', $review['reviewer_name'] );
+		update_post_meta( $post_id, '_dh_reviewer_photo', $review['reviewer_photo'] );
+		update_post_meta( $post_id, '_dh_star_rating', $review['star_rating'] );
+		update_post_meta( $post_id, '_dh_places_hash', $review['places_hash'] );
+		update_post_meta( $post_id, '_dh_review_updated', $review['update_time'] );
+		update_post_meta( $post_id, '_dh_review_source', 'places_api' );
+		update_post_meta( $post_id, '_dh_review_verified', '1' );
+
+		do_action( 'dh_reviews_review_created', $post_id, $review );
+
+		return $post_id;
 	}
 
 	/**

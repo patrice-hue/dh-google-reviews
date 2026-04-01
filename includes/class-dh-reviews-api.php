@@ -645,6 +645,57 @@ class API {
 		return $body[ $data_key ] ?? array();
 	}
 
+	// -------------------------------------------------------------------------
+	// Places API
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Fetch place details (reviews, rating, total count) from the Places API.
+	 *
+	 * Returns a maximum of 5 reviews as per Places API limitations.
+	 * No OAuth required — uses a plain API key.
+	 *
+	 * @param string $api_key  Google Places API key.
+	 * @param string $place_id Google Place ID (e.g. ChIJ…).
+	 * @return array|false Decoded response array or false on failure.
+	 */
+	public function fetch_places_reviews( string $api_key, string $place_id ) {
+		$url = add_query_arg(
+			array(
+				'place_id' => $place_id,
+				'fields'   => 'reviews,rating,user_ratings_total',
+				'key'      => $api_key,
+			),
+			'https://maps.googleapis.com/maps/api/place/details/json'
+		);
+
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 15,
+				'headers' => array(
+					'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+
+		if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			return false;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( empty( $data['status'] ) || 'OK' !== $data['status'] ) {
+			return false;
+		}
+
+		return $data;
+	}
+
 	/**
 	 * Store an API error message in a per-user transient for display on the next page load.
 	 *
