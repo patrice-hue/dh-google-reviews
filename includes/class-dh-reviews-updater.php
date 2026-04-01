@@ -17,6 +17,8 @@
  *     dh-google-reviews slug so the plugin stays active.
  *  4. plugin_row_meta                        – add "View details"
  *     link to the plugin row in the admin plugins list.
+ *  5. plugin_action_links_{plugin}           – add "Check for updates"
+ *     inline action link to the plugin row.
  *
  * @package DH_Reviews
  */
@@ -80,6 +82,9 @@ class Updater {
 		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 10, 3 );
 		add_filter( 'upgrader_post_install', array( $this, 'after_install' ), 10, 3 );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
+		add_filter( 'plugin_action_links_' . self::PLUGIN_FILE, array( $this, 'action_links' ) );
+		add_action( 'admin_init', array( $this, 'handle_check_now' ) );
+		add_action( 'admin_notices', array( $this, 'show_check_notice' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -260,6 +265,113 @@ class Updater {
 	}
 
 	// -------------------------------------------------------------------------
+	// Plugin row action link – "Check for updates"
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Add a "Check for updates" inline action link to the plugin row.
+	 *
+	 * Hooked on plugin_action_links_{plugin_file}.
+	 *
+	 * @param string[] $links Existing action links (Activate/Deactivate, etc.).
+	 * @return string[] Modified links array.
+	 */
+	public function action_links( $links ) {
+		if ( ! current_user_can( 'update_plugins' ) ) {
+			return $links;
+		}
+
+		$url = wp_nonce_url(
+			admin_url( 'plugins.php?dh_check_update=1' ),
+			'dh_check_update'
+		);
+
+		$links[] = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $url ),
+			esc_html__( 'Check for updates', 'dh-google-reviews' )
+		);
+
+		return $links;
+	}
+
+	/**
+	 * Handle the "Check for updates" link click.
+	 *
+	 * Clears the cached GitHub release transient, clears the WordPress
+	 * update_plugins site transient, forces a fresh update check, then
+	 * redirects back to plugins.php with a result parameter.
+	 *
+	 * Hooked on admin_init.
+	 *
+	 * @return void
+	 */
+	public function handle_check_now(): void {
+		if ( ! isset( $_GET['dh_check_update'] ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'update_plugins' ) ) {
+			wp_die( esc_html__( 'You do not have permission to check for updates.', 'dh-google-reviews' ) );
+		}
+
+		check_admin_referer( 'dh_check_update' );
+
+		// Clear the cached GitHub API response so get_release() fetches fresh data.
+		delete_transient( self::CACHE_KEY );
+
+		// Clear WordPress's own update_plugins site transient.
+		delete_site_transient( 'update_plugins' );
+
+		// Force WordPress to re-run its update check immediately.
+		wp_update_plugins();
+
+		// Fetch the (now-fresh) release to determine the result message.
+		$release        = $this->get_release();
+		$remote_version = $release ? $this->parse_version( $release['tag_name'] ) : '';
+		$update_found   = $remote_version && version_compare( $remote_version, DH_REVIEWS_VERSION, '>' );
+
+		wp_safe_redirect(
+			add_query_arg(
+				'dh_update_checked',
+				$update_found ? rawurlencode( $remote_version ) : '0',
+				admin_url( 'plugins.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Show an admin notice after a manual update check.
+	 *
+	 * Reads the dh_update_checked query param set by handle_check_now().
+	 * Hooked on admin_notices.
+	 *
+	 * @return void
+	 */
+	public function show_check_notice(): void {
+		if ( ! isset( $_GET['dh_update_checked'] ) || ! current_user_can( 'update_plugins' ) ) {
+			return;
+		}
+
+		$version = sanitize_text_field( wp_unslash( $_GET['dh_update_checked'] ) );
+
+		if ( '0' === $version ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' .
+				esc_html__( 'DH Google Reviews: You are running the latest version.', 'dh-google-reviews' ) .
+				'</p></div>';
+		} else {
+			echo '<div class="notice notice-warning is-dismissible"><p>' .
+				sprintf(
+					/* translators: %s: version number */
+					esc_html__( 'DH Google Reviews: Update check complete. Version %s is available.', 'dh-google-reviews' ),
+					'<strong>' . esc_html( $version ) . '</strong>'
+				) .
+				'</p></div>';
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Plugin row meta
 	// -------------------------------------------------------------------------
 
@@ -312,6 +424,9 @@ class Updater {
 	 * Caches the response in a transient for 12 hours to stay well within
 	 * GitHub's 60 unauthenticated requests per hour rate limit.
 	 *
+	 * The User-Agent header is required by the GitHub API; requests without
+	 * one are rejected with a 403.
+	 *
 	 * @return array|false Decoded release array or false on failure.
 	 */
 	private function get_release() {
@@ -323,10 +438,10 @@ class Updater {
 		$response = wp_remote_get(
 			self::API_URL,
 			array(
-				'timeout'    => 10,
-				'user-agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
-				'headers'    => array(
-					'Accept' => 'application/vnd.github.v3+json',
+				'timeout' => 10,
+				'headers' => array(
+					'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
+					'Accept'     => 'application/vnd.github.v3+json',
 				),
 			)
 		);
@@ -352,6 +467,9 @@ class Updater {
 
 	/**
 	 * Strip a leading 'v' from a git tag so version_compare works correctly.
+	 *
+	 * GitHub releases often use tags like "v1.0.1"; this normalises them to
+	 * "1.0.1" before comparing against DH_REVIEWS_VERSION.
 	 *
 	 * @param string $tag Raw tag string (e.g. "v1.2.0" or "1.2.0").
 	 * @return string Normalised version string (e.g. "1.2.0").
