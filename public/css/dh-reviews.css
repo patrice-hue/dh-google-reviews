@@ -266,9 +266,9 @@
 	flex-shrink: 0;
 }
 
-/* In sidebar layout the flex gap handles spacing; remove aggregate bottom margin. */
-.dh-reviews-slider-layout__sidebar .dh-reviews-aggregate {
-	margin-bottom: 0;
+/* In slider top layout, give the sidebar aggregate some bottom margin */
+.dh-reviews--aggregate-top .dh-reviews-slider-layout__sidebar .dh-reviews-aggregate {
+	margin-bottom: var(--dh-reviews-gap);
 }
 
 /* =============================================================================
@@ -513,16 +513,48 @@
 	outline-offset: 2px;
 }
 
-/* Sidebar layout: aggregate panel on the left, slider on the right */
+/* Slider layout wrapper: always present; houses slider-main and optional sidebar */
 .dh-reviews-slider-layout {
+	/* Block by default (aggregate-top: sidebar stacks above slider-main) */
+}
+
+/* Slider: activate flex row when aggregate is positioned left */
+.dh-reviews--aggregate-left .dh-reviews-slider-layout {
 	display: flex;
 	gap: calc(var(--dh-reviews-gap) * 2);
 	align-items: flex-start;
 }
 
-.dh-reviews-slider-layout__sidebar {
+.dh-reviews--aggregate-left .dh-reviews-slider-layout__sidebar {
 	width: 220px;
 	flex-shrink: 0;
+}
+
+/* When aggregate is positioned left, flex gap handles spacing — remove bottom margin */
+.dh-reviews--aggregate-left .dh-reviews-aggregate {
+	margin-bottom: 0;
+}
+
+/* Grid sidebar layout (aggregate_position=left, not list) */
+.dh-reviews-sidebar-layout {
+	display: flex;
+	gap: calc(var(--dh-reviews-gap) * 2);
+	align-items: flex-start;
+	margin-bottom: var(--dh-reviews-gap);
+}
+
+.dh-reviews-sidebar-layout__sidebar {
+	width: 220px;
+	flex-shrink: 0;
+}
+
+.dh-reviews-sidebar-layout__sidebar .dh-reviews-aggregate {
+	margin-bottom: 0;
+}
+
+.dh-reviews-sidebar-layout__main {
+	flex: 1;
+	min-width: 0;
 }
 
 /* Add horizontal padding to the slider main so arrows don't overlap cards */
@@ -633,12 +665,14 @@
 		width: calc((100% - var(--dh-reviews-gap)) / 2);
 	}
 
-	/* Sidebar stacks vertically on tablet */
-	.dh-reviews-slider-layout {
+	/* Sidebar layouts stack vertically on tablet */
+	.dh-reviews--aggregate-left .dh-reviews-slider-layout,
+	.dh-reviews-sidebar-layout {
 		flex-direction: column;
 	}
 
-	.dh-reviews-slider-layout__sidebar {
+	.dh-reviews--aggregate-left .dh-reviews-slider-layout__sidebar,
+	.dh-reviews-sidebar-layout__sidebar {
 		width: 100%;
 	}
 

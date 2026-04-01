@@ -47,6 +47,7 @@ export default function Edit( { attributes, setAttributes } ) {
 		showPhoto,
 		showStars,
 		showAggregate,
+		aggregatePosition,
 		showGoogleIcon,
 		showGoogleAttribution,
 		showCta,
@@ -197,6 +198,18 @@ export default function Edit( { attributes, setAttributes } ) {
 						checked={ showAggregate }
 						onChange={ ( value ) => setAttributes( { showAggregate: value } ) }
 					/>
+					{ showAggregate && (
+						<SelectControl
+							label={ __( 'Aggregate Bar Position', 'dh-google-reviews' ) }
+							value={ aggregatePosition }
+							options={ [
+								{ label: __( 'Top (full width above cards)', 'dh-google-reviews' ), value: 'top' },
+								{ label: __( 'Left (sidebar next to cards)', 'dh-google-reviews' ), value: 'left' },
+							] }
+							onChange={ ( value ) => setAttributes( { aggregatePosition: value } ) }
+							help={ __( 'Left sidebar is not supported in List layout.', 'dh-google-reviews' ) }
+						/>
+					) }
 					<ToggleControl
 						label={ __( 'Show Google "G" Icon on Cards', 'dh-google-reviews' ) }
 						checked={ showGoogleIcon }

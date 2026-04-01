@@ -35,7 +35,8 @@ $total_cards = count( $reviews );
 $visible     = max( 1, (int) $atts['visible_cards'] );
 $dot_count   = (int) ceil( $total_cards / $visible );
 
-$wrapper_class = 'dh-reviews-wrap dh-reviews--slider';
+$agg_position  = 'left' === ( $atts['aggregate_position'] ?? 'top' ) ? 'left' : 'top';
+$wrapper_class = 'dh-reviews-wrap dh-reviews--slider dh-reviews--aggregate-' . $agg_position;
 if ( ! empty( $atts['class'] ) ) {
 	$wrapper_class .= ' ' . sanitize_html_class( $atts['class'] );
 }

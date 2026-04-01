@@ -84,6 +84,7 @@ class Block {
 			'show_dots'               => isset( $attributes['showDots'] ) ? ( $attributes['showDots'] ? 'true' : 'false' ) : 'true',
 			'visible_cards'           => $attributes['visibleCards'] ?? 3,
 			'date_format'             => $attributes['dateFormat'] ?? 'relative',
+			'aggregate_position'      => $attributes['aggregatePosition'] ?? 'top',
 			'class'                   => $attributes['className'] ?? '',
 		);
 

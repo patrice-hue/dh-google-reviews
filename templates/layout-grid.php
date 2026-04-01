@@ -27,27 +27,53 @@ if ( ! $cta_url && $place_id ) {
 	$cta_url = 'https://search.google.com/local/writereview?placeid=' . rawurlencode( $place_id );
 }
 
-$wrapper_class = 'dh-reviews-wrap dh-reviews--grid';
+$agg_position  = 'left' === ( $atts['aggregate_position'] ?? 'top' ) ? 'left' : 'top';
+$wrapper_class = 'dh-reviews-wrap dh-reviews--grid dh-reviews--aggregate-' . $agg_position;
 if ( ! empty( $atts['class'] ) ) {
 	$wrapper_class .= ' ' . sanitize_html_class( $atts['class'] );
 }
+
+// Use sidebar layout when position is left and aggregate is shown.
+$use_sidebar = 'left' === $agg_position && $atts['show_aggregate'];
 ?>
 <div class="<?php echo esc_attr( $wrapper_class ); ?>"
 	data-columns="<?php echo esc_attr( $atts['columns'] ); ?>"
 	data-visible="<?php echo esc_attr( $atts['visible_cards'] ); ?>">
 
-	<?php if ( $atts['show_aggregate'] ) : ?>
-		<?php echo $render->render_aggregate( $atts ); ?>
-	<?php endif; ?>
+	<?php if ( $use_sidebar ) : ?>
+		<div class="dh-reviews-sidebar-layout">
+			<div class="dh-reviews-sidebar-layout__sidebar">
+				<?php echo $render->render_aggregate( $atts ); ?>
+			</div>
+			<div class="dh-reviews-sidebar-layout__main">
+				<?php if ( ! empty( $reviews ) ) : ?>
+					<div class="dh-reviews-cards">
+						<?php foreach ( $reviews as $review ) : ?>
+							<?php echo $render->render_card( $review, $atts ); ?>
+						<?php endforeach; ?>
+					</div>
+				<?php else : ?>
+					<p class="dh-reviews-empty">No reviews found.</p>
+				<?php endif; ?>
+			</div><!-- .dh-reviews-sidebar-layout__main -->
+		</div><!-- .dh-reviews-sidebar-layout -->
 
-	<?php if ( ! empty( $reviews ) ) : ?>
-		<div class="dh-reviews-cards">
-			<?php foreach ( $reviews as $review ) : ?>
-				<?php echo $render->render_card( $review, $atts ); ?>
-			<?php endforeach; ?>
-		</div>
 	<?php else : ?>
-		<p class="dh-reviews-empty">No reviews found.</p>
+
+		<?php if ( $atts['show_aggregate'] ) : ?>
+			<?php echo $render->render_aggregate( $atts ); ?>
+		<?php endif; ?>
+
+		<?php if ( ! empty( $reviews ) ) : ?>
+			<div class="dh-reviews-cards">
+				<?php foreach ( $reviews as $review ) : ?>
+					<?php echo $render->render_card( $review, $atts ); ?>
+				<?php endforeach; ?>
+			</div>
+		<?php else : ?>
+			<p class="dh-reviews-empty">No reviews found.</p>
+		<?php endif; ?>
+
 	<?php endif; ?>
 
 	<?php if ( $atts['show_cta'] && $cta_url ) : ?>

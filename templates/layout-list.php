@@ -28,7 +28,7 @@ if ( ! $cta_url && $place_id ) {
 	$cta_url = 'https://search.google.com/local/writereview?placeid=' . rawurlencode( $place_id );
 }
 
-$wrapper_class = 'dh-reviews-wrap dh-reviews--list';
+$wrapper_class = 'dh-reviews-wrap dh-reviews--list dh-reviews--aggregate-top';
 if ( ! empty( $atts['class'] ) ) {
 	$wrapper_class .= ' ' . sanitize_html_class( $atts['class'] );
 }

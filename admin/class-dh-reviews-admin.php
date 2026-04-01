@@ -544,6 +544,23 @@ class Admin {
 			)
 		);
 
+		add_settings_field(
+			'default_aggregate_position',
+			__( 'Aggregate Bar Position', 'dh-google-reviews' ),
+			array( $this, 'render_field_select' ),
+			'dh-reviews-settings',
+			'dh_reviews_display',
+			array(
+				'field'       => 'default_aggregate_position',
+				'options'     => array(
+					'top'  => __( 'Top – full width above cards', 'dh-google-reviews' ),
+					'left' => __( 'Left – sidebar next to cards (grid &amp; slider only)', 'dh-google-reviews' ),
+				),
+				'default'     => 'top',
+				'description' => __( 'Left sidebar is ignored for the List layout.', 'dh-google-reviews' ),
+			)
+		);
+
 		$toggles = array(
 			'show_owner_replies'   => __( 'Show owner replies', 'dh-google-reviews' ),
 			'show_reviewer_photos' => __( 'Show reviewer photos', 'dh-google-reviews' ),
@@ -784,6 +801,18 @@ class Admin {
 					</td>
 				</tr>
 				<?php endforeach; ?>
+				<tr id="dh-gen-row-aggregate_position">
+					<th scope="row">
+						<label for="dh-gen-aggregate_position"><?php esc_html_e( 'Aggregate bar position', 'dh-google-reviews' ); ?></label>
+					</th>
+					<td>
+						<select id="dh-gen-aggregate_position" data-attr="aggregate_position">
+							<option value="top"><?php esc_html_e( 'Top – full width above cards', 'dh-google-reviews' ); ?></option>
+							<option value="left"><?php esc_html_e( 'Left – sidebar next to cards', 'dh-google-reviews' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'Left sidebar applies to grid and slider only.', 'dh-google-reviews' ); ?></p>
+					</td>
+				</tr>
 			</table>
 
 			<!-- ── Google Branding ──────────────────────────────────────────────── -->
@@ -877,6 +906,7 @@ class Admin {
 				show_photo:             true,
 				show_stars:             true,
 				show_aggregate:         true,
+				aggregate_position:     'top',
 				show_dots:              true,
 				show_google_icon:       true,
 				show_google_attribution: true,
@@ -938,6 +968,7 @@ class Admin {
 				maybeBool( parts, 'show_photo',             bool( 'show_photo' ),             DEFAULTS.show_photo );
 				maybeBool( parts, 'show_stars',             bool( 'show_stars' ),             DEFAULTS.show_stars );
 				maybeBool( parts, 'show_aggregate',         bool( 'show_aggregate' ),         DEFAULTS.show_aggregate );
+				maybe( parts, 'aggregate_position', val( 'aggregate_position' ), DEFAULTS.aggregate_position );
 				maybeBool( parts, 'show_dots',              bool( 'show_dots' ),              DEFAULTS.show_dots );
 				maybeBool( parts, 'show_google_icon',       bool( 'show_google_icon' ),       DEFAULTS.show_google_icon );
 				maybeBool( parts, 'show_google_attribution', bool( 'show_google_attribution' ), DEFAULTS.show_google_attribution );
@@ -955,12 +986,17 @@ class Admin {
 				var colRow   = document.getElementById( 'dh-gen-row-columns' );
 				var slideRow = document.getElementById( 'dh-gen-row-visible_cards' );
 				var ctaRow   = document.getElementById( 'dh-gen-row-cta_text' );
+				var aggPosRow = document.getElementById( 'dh-gen-row-aggregate_position' );
 
 				if ( colRow )   { colRow.style.display   = ( layout === 'grid'   ) ? '' : 'none'; }
 				if ( slideRow ) { slideRow.style.display  = ( layout === 'slider' ) ? '' : 'none'; }
 				if ( ctaRow ) {
 					var showCta = getEl( 'show_cta' );
 					ctaRow.style.display = ( showCta && showCta.checked ) ? '' : 'none';
+				}
+				if ( aggPosRow ) {
+					var showAgg = getEl( 'show_aggregate' );
+					aggPosRow.style.display = ( showAgg && showAgg.checked ) ? '' : 'none';
 				}
 			}
 
@@ -1273,6 +1309,12 @@ class Admin {
 			array( 'relative', 'absolute' ),
 			true
 		) ? $input['default_date_format'] : 'relative';
+
+		$out['default_aggregate_position'] = in_array(
+			$input['default_aggregate_position'] ?? '',
+			array( 'top', 'left' ),
+			true
+		) ? $input['default_aggregate_position'] : 'top';
 
 		$toggles = array(
 			'show_owner_replies',

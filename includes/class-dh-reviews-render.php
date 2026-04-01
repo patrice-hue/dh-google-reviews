@@ -130,6 +130,7 @@ class Render {
 			'show_dots'               => true,
 			'visible_cards'           => 3,
 			'date_format'             => 'relative',
+			'aggregate_position'      => 'top',
 			'class'                   => '',
 		);
 
@@ -166,6 +167,9 @@ class Render {
 		$atts['order'] = 'ASC' === strtoupper( (string) $atts['order'] ) ? 'ASC' : 'DESC';
 		if ( ! in_array( $atts['date_format'], array( 'relative', 'absolute' ), true ) ) {
 			$atts['date_format'] = 'relative';
+		}
+		if ( ! in_array( $atts['aggregate_position'], array( 'top', 'left' ), true ) ) {
+			$atts['aggregate_position'] = 'top';
 		}
 
 		return $atts;

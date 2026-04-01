@@ -102,6 +102,11 @@
 			"default": "relative",
 			"enum": [ "relative", "absolute" ]
 		},
+		"aggregatePosition": {
+			"type": "string",
+			"default": "top",
+			"enum": [ "top", "left" ]
+		},
 		"className": {
 			"type": "string",
 			"default": ""
